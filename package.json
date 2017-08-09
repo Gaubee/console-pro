@@ -1,0 +1,25 @@
+{
+  "name": "console-pro",
+  "version": "1.0.0",
+  "description": "Better console for support console.group",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Gaubee/console-pro.git"
+  },
+  "keywords": [
+    "console"
+  ],
+  "author": "Gaubee",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Gaubee/console-pro/issues"
+  },
+  "homepage": "https://github.com/Gaubee/console-pro#readme",
+  "dependencies": {
+    "colors": "^1.1.2"
+  }
+}
