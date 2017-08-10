@@ -30,10 +30,16 @@ myconsole.groupEnd(g1, "G1 IS OVER");
 ## TEST2
 ![image](https://user-images.githubusercontent.com/2151644/29110771-71569aa4-7d1a-11e7-975d-f5c7cf1d5b42.png)
 
+## TEST3
+![image](https://user-images.githubusercontent.com/2151644/29168305-e8877a76-7e00-11e7-9227-3e1ef8c870a6.png)
+
 # API
 
-## .flagHead(headContent :string[, colorName :string]) :string
-Automatically fill the bright color to the string.
+## .flagHead(headContent :string) :string
+Automatically fill the string.
+
+## .flagHead(headContent :string, withBG :bool) :string
+Automatically fill the string.
 
 ## group(...args): symbol
 start an group log.

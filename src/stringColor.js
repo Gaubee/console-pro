@@ -2,107 +2,114 @@ const colors = (exports.colors = require("colors"));
 const color_flag_reg = (exports.color_flag_reg = /((\u001b\[\d+m)+)([\s\S]+?)((\u001b\[\d+m)+)/); //不以^开头，前面可能有空格
 
 const COLOR_STYLES = Object.assign({}, colors.styles);
+const TEXT_COLOR_WITHOUT_BG = (exports.TEXT_COLOR_WITHOUT_BG = [
+	"yellow",
+	"blue",
+	"magenta",
+	"cyan",
+	"red",
+	"green"
+]);
+const TEXT_COLOR_WITH_BG = (exports.TEXT_COLOR_WITH_BG = (() => {
+	const bg_text_map = {
+		bgBlack: [
+			"yellow",
+			"blue",
+			"magenta",
+			"cyan",
+			"red",
+			"green",
+			"white",
+			"gray"
+		],
+		// bgRed: [
+		// 	"black",
+		// 	"green",
+		// 	"yellow",
+		// 	"blue",
+		// 	"magenta",
+		// 	"cyan",
+		// 	"white",
+		// 	"gray"
+		// ],
+		bgGreen: [
+			"black",
+			"red",
+			// "yellow",
+			"blue",
+			"magenta",
+			"cyan",
+			"white",
+			"gray"
+		],
+		bgYellow: [
+			"black",
+			"red",
+			// "green",
+			"blue",
+			"magenta",
+			"cyan",
+			// "white",
+			"gray"
+		],
+		bgBlue: [
+			"black",
+			"red",
+			"green",
+			"yellow",
+			"magenta",
+			// "cyan",
+			"white",
+			"gray"
+		],
+		bgMagenta: [
+			"black",
+			"red",
+			"green",
+			"yellow",
+			"blue",
+			// "cyan",
+			"white"
+			// "gray"
+		],
+		bgCyan: [
+			"black",
+			"red",
+			"green",
+			"yellow",
+			"blue",
+			// "magenta",
+			"white"
+			// "gray"
+		],
+		bgWhite: [
+			"black",
+			"red",
+			"green",
+			// "yellow",
+			"blue",
+			"magenta",
+			"cyan",
+			"gray"
+		]
+	};
+	const res = [];
+	for (var bgKey in bg_text_map) {
+		const bgColor = COLOR_STYLES[bgKey];
+		bg_text_map[bgKey].forEach(textKey => {
+			const textColor = COLOR_STYLES[textKey];
+			const mixKey = bgKey + "-" + textKey;
+			COLOR_STYLES[mixKey] = {
+				open: bgColor.open + textColor.open,
+				close: bgColor.close + textColor.close
+			};
+			res.push(mixKey);
+		});
+	}
+	return res;
+})());
 
-const TEXT_COLOR = ["yellow", "blue", "magenta", "cyan", "red", "green"].concat(
-	(() => {
-		const bg_text_map = {
-			bgBlack: [
-				"yellow",
-				"blue",
-				"magenta",
-				"cyan",
-				"red",
-				"green",
-				"white",
-				"gray"
-			],
-			// bgRed: [
-			// 	"black",
-			// 	"green",
-			// 	"yellow",
-			// 	"blue",
-			// 	"magenta",
-			// 	"cyan",
-			// 	"white",
-			// 	"gray"
-			// ],
-			bgGreen: [
-				"black",
-				"red",
-				// "yellow",
-				"blue",
-				"magenta",
-				"cyan",
-				"white",
-				"gray",
-			],
-			bgYellow: [
-				"black",
-				"red",
-				// "green",
-				"blue",
-				"magenta",
-				"cyan",
-				// "white",
-				"gray"
-			],
-			bgBlue: [
-				"black",
-				"red",
-				"green",
-				"yellow",
-				"magenta",
-				// "cyan",
-				"white",
-				"gray"
-			],
-			bgMagenta: [
-				"black",
-				"red",
-				"green",
-				"yellow",
-				"blue",
-				// "cyan",
-				"white",
-				// "gray"
-			],
-			bgCyan: [
-				"black",
-				"red",
-				"green",
-				"yellow",
-				"blue",
-				// "magenta",
-				"white",
-				// "gray"
-			],
-			bgWhite: [
-				"black",
-				"red",
-				"green",
-				// "yellow",
-				"blue",
-				"magenta",
-				"cyan",
-				"gray"
-			]
-		};
-		const res = [];
-		for (var bgKey in bg_text_map) {
-			const bgColor = COLOR_STYLES[bgKey];
-			bg_text_map[bgKey].forEach(textKey => {
-				const textColor = COLOR_STYLES[textKey];
-				const mixKey = bgKey + "-" + textKey;
-				COLOR_STYLES[mixKey] = {
-					open: bgColor.open + textColor.open,
-					close: bgColor.close + textColor.close
-				};
-				res.push(mixKey);
-			});
-		}
-		return res;
-	})()
-);
+const TEXT_COLOR = TEXT_COLOR_WITHOUT_BG.concat(TEXT_COLOR_WITH_BG);
 // TEXT_COLOR.forEach(colorKey => {
 // 	const color = COLOR_STYLES[colorKey];
 // 	if (!color) {
@@ -123,7 +130,7 @@ function colorsHead(str, to_color, colorList = TEXT_COLOR) {
 				];
 		}
 		const color_style = COLOR_STYLES[to_color];
-		return color_style.open + head + color_style.close;//+COLOR_STYLES.reset.open+COLOR_STYLES.reset.close;
+		return color_style.open + head + color_style.close; //+COLOR_STYLES.reset.open+COLOR_STYLES.reset.close;
 	});
 }
 exports.colorsHead = colorsHead;

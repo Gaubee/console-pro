@@ -9,7 +9,9 @@ const {
 	colorsHead,
 	colorsHeadWithBG,
 	COLOR_ENUM,
-	COLOR_MAP
+	COLOR_MAP,
+	TEXT_COLOR_WITHOUT_BG,
+	TEXT_COLOR_WITH_BG
 } = require("./stringColor");
 const { replaceAll } = require("./replaceAll");
 const { dateFormat } = require("./dateFormat");
@@ -199,7 +201,8 @@ class Console {
 	}
 	error(...args) {
 		const errorFormateds = util.format(...args).split("\n");
-		const firstLine = coloredErrorSymbol + colors.red(errorFormateds.shift()) + "\n";
+		const firstLine =
+			coloredErrorSymbol + colors.red(errorFormateds.shift()) + "\n";
 		const errorBody = errorFormateds
 			.map(s => colors.bgRed(colors.black(s)))
 			.join("\n");
@@ -469,8 +472,16 @@ class Console {
 		const colored_flag = colorsHead("[" + flag + "]");
 		this.log(colored_flag, ...rest_args);
 	}
-	flagHead(flag) {
-		return colorsHead("[" + flag + "]");
+	flagHead(flag, withBG) {
+		if (typeof withBG === "boolean") {
+			return colorsHead(
+				"[" + flag + "]",
+				null,
+				withBG ? TEXT_COLOR_WITH_BG : TEXT_COLOR_WITHOUT_BG
+			);
+		} else {
+			return colorsHead("[" + flag + "]");
+		}
 	}
 }
 Console.COLOR = COLOR_ENUM;
