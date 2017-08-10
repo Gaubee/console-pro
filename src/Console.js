@@ -202,7 +202,10 @@ class Console {
 	error(...args) {
 		const errorFormateds = util.format(...args).split("\n");
 		const firstLine =
-			coloredErrorSymbol + colors.red(errorFormateds.shift()) + "\n";
+			coloredErrorSymbol +
+			" " +
+			colors.red(errorFormateds.shift()) +
+			(errorFormateds.length ? "\n" : "");
 		const errorBody = errorFormateds
 			.map(s => colors.bgRed(colors.black(s)))
 			.join("\n");
