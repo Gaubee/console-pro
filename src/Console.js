@@ -7,12 +7,27 @@ const {
 	colors,
 	color_flag_reg,
 	colorsHead,
+	colorsHeadWithBG,
 	COLOR_ENUM,
 	COLOR_MAP
 } = require("./stringColor");
 const { replaceAll } = require("./replaceAll");
 const { dateFormat } = require("./dateFormat");
+const {
+	infoSymbol,
+	successSymbol,
+	warnSymbol,
+	errorSymbol
+} = require("./specialSymbol");
+const coloredInfoSymbol = colors.underline(colors.blue(infoSymbol));
+const coloredSuccessSymbol = colors.underline(colors.green(successSymbol));
+const coloredWarnSymbol = colors.underline(colors.yellow(warnSymbol));
+const coloredErrorSymbol = colors.underline(colors.red(errorSymbol));
 
+const TIMEEND_FIRST_ARGUMENT_TYPE_ERROR =
+	".timeEnd's first arguments must a Symbol from .time";
+const GROUPEND_FIRST_ARGUMENT_TYPE_ERROR =
+	".groupEnd's first arguments must a Symbol from .group";
 class Console {
 	constructor(options = {}) {
 		this.before = [];
@@ -27,14 +42,45 @@ class Console {
 					_console.log(...args);
 				});
 			};
-		} else {
-			this._console_log = args => {
-				_console.log(...args);
+			this._console_info = args => {
+				process.nextTick(() => {
+					_console.info(...args);
+				});
 			};
+			this._console_debug = args => {
+				process.nextTick(() => {
+					_console.debug(...args);
+				});
+			};
+			this._console_warn = args => {
+				process.nextTick(() => {
+					_console.warn(...args);
+				});
+			};
+			this._console_error = args => {
+				process.nextTick(() => {
+					_console.error(...args);
+				});
+			};
+			this._console_assert = args => {
+				process.nextTick(() => {
+					_console.assert(...args);
+				});
+			};
+			this._console_trace = args => {
+				process.nextTick(() => {
+					_console.trace(...args);
+				});
+			};
+		} else {
+			this._console_log = args => _console.log(...args);
+			this._console_info = args => _console.info(...args);
+			this._console_debug = args => _console.debug(...args);
+			this._console_warn = args => _console.warn(...args);
+			this._console_error = args => _console.error(...args);
+			this.assert = _console.assert;
+			this.trace = _console.trace;
 		}
-
-		this.assert = _console.assert;
-		this.trace = _console.trace;
 	}
 	getBeforeForNewLine() {
 		if (this.config.auto_reduce_indent) {
@@ -94,12 +140,12 @@ class Console {
 	}
 	static replaceColorContent(str, replacer) {
 		if (color_flag_reg.test(str)) {
-			replacer = replacer.replace(color_flag_reg, "$2");
+			replacer = replacer.replace(color_flag_reg, "$3");
 			return str
 				.trim()
 				.replace(
 					color_flag_reg,
-					"$1" + replaceAll(replacer, "$", "$$$$") + "$3"
+					"$1" + replaceAll(replacer, "$", "$$$$") + "$4"
 				);
 		}
 		return replacer;
@@ -133,20 +179,32 @@ class Console {
 		this._console_log(mix_args);
 	}
 	info(...args) {
+		args.unshift(coloredInfoSymbol);
 		var mix_args = this.addBeforeForNewLine(args);
-		_console.info(...mix_args);
+		this._console_info(mix_args);
+	}
+	success(...args) {
+		args.unshift(coloredSuccessSymbol);
+		var mix_args = this.addBeforeForNewLine(args);
+		this._console_info(mix_args);
 	}
 	debug(...args) {
 		var mix_args = this.addBeforeForNewLine(args);
-		_console.debug(...mix_args);
+		this._console_debug(mix_args);
 	}
 	warn(...args) {
+		args.unshift(coloredWarnSymbol);
 		var mix_args = this.addBeforeForNewLine(args);
-		_console.warn(...mix_args);
+		this._console_warn(mix_args);
 	}
 	error(...args) {
-		var mix_args = this.addBeforeForNewLine(args);
-		_console.error(...mix_args);
+		const errorFormateds = util.format(...args).split("\n");
+		const firstLine = coloredErrorSymbol + colors.red(errorFormateds.shift()) + "\n";
+		const errorBody = errorFormateds
+			.map(s => colors.bgRed(colors.black(s)))
+			.join("\n");
+		var mix_args = this.addBeforeForNewLine([firstLine + errorBody]);
+		this._console_error(mix_args);
 	}
 	dir(object, options) {
 		var args = this.addBeforeForNewLine([
@@ -164,32 +222,140 @@ class Console {
 	}
 	time(...args) {
 		var start_date = new Date();
-		var time_str = args.join(" ");
-		this.timeMap[time_str] = start_date;
-
+		var color_start = "";
+		var color_end = "";
+		var may_be_flag = args[0];
+		if (util.isSymbol(may_be_flag) && COLOR_MAP.has(may_be_flag)) {
+			var style = COLOR_MAP.get(may_be_flag);
+			color_start = style.open;
+			color_end = style.close;
+			// arguments = Array.slice(arguments, 1);
+			args.shift();
+		} else if (typeof may_be_flag === "string") {
+			var color_wrap = may_be_flag.match(color_flag_reg);
+			if (color_wrap) {
+				color_start = color_wrap[1];
+				color_end = color_wrap[4];
+			}
+		}
 		this.before.push(
-			"┌ (" + dateFormat(start_date, this.date_format) + ")"
+			color_start +
+				`┌ (${dateFormat(start_date, this.date_format)})` +
+				color_end +
+				" "
 		);
-		var args = this.addBefore(args);
+		var log_lines = util.format(...args).split("\n");
+		var args = this.addBefore([log_lines.shift()]);
 		this._console_log(args);
 
 		this.before.pop();
-		this.before.push("│ ");
-	}
-	timeEnd(...args) {
-		var end_date = new Date();
-		var time_str = args.join(" ");
-		if (!this.timeMap.hasOwnProperty(time_str)) {
-			throw new Error("No such label: " + time_str);
-		}
-		var start_date = this.timeMap[time_str];
+		this.before.push(color_start + "│ " + color_end);
 
-		this.before.pop();
-		this.before.push("└ (" + dateFormat(end_date, this.date_format) + ")");
-		var mix_args = this.addBefore(args);
-		mix_args.push(": " + (end_date - start_date) + "ms");
-		this._console_log(mix_args);
-		this.before.pop();
+		while (log_lines.length) {
+			this.log(log_lines.shift());
+		}
+
+		var res_symbol = Symbol(this.beforeSymbol.length);
+		this.beforeSymbol.push(res_symbol);
+		this.timeMap[res_symbol] = start_date;
+		return res_symbol;
+	}
+	timeEnd(symbol, ...rest_args) {
+		if (!util.isSymbol(symbol)) {
+			this._timeEnd(
+				this.beforeSymbol[this.beforeSymbol.length - 1],
+				...rest_args
+			);
+		} else {
+			this._timeEnd(symbol, ...rest_args);
+		}
+	}
+	_timeEnd(start_symbol, ...rest_args) {
+		if (!util.isSymbol(start_symbol)) {
+			throw new Error(TIMEEND_FIRST_ARGUMENT_TYPE_ERROR);
+		}
+		/* 交错模式 */
+		const start_index = this.beforeSymbol.lastIndexOf(start_symbol);
+		const before_len = this.beforeSymbol.length;
+		const start_date = this.timeMap[start_symbol];
+		if (!start_date) {
+			throw new Error(TIMEEND_FIRST_ARGUMENT_TYPE_ERROR);
+		}
+		const end_date = new Date();
+		delete this.timeMap[start_symbol];
+
+		if (start_index !== before_len - 1) {
+			/* Match color */
+			var time_flag = this.before[start_index];
+
+			var backup = [];
+			for (var i = start_index + 1; i < before_len; i += 1) {
+				backup.push(this.before[i]);
+				this.before[i] = Console.replaceColorContent(
+					time_flag,
+					this.before[i]
+						.replace(color_flag_reg, "$3") // 删除颜色影响
+						.replace(/(\s*)│(\s*)/, function(
+							s,
+							before_emp_s,
+							after_emp_s
+						) {
+							// 替换空格
+							return (
+								"─".repeat(before_emp_s.length) +
+								"┼" +
+								(i === before_len - 1
+									? after_emp_s
+									: "─".repeat(after_emp_s.length))
+							);
+						})
+				);
+			}
+			this.before[start_index] = time_flag.replace("│ ", "└─");
+
+			rest_args.unshift(
+				Console.replaceColorContent(
+					time_flag,
+					`(${dateFormat(end_date, this.date_format)}): ${end_date -
+						start_date}ms`
+				)
+			);
+			var args = this.addBefore(rest_args);
+			this._console_log(args);
+
+			for (i -= 1; i > start_index; i -= 1) {
+				this.before[i] = backup.pop();
+			}
+
+			this.before.splice(start_index, 1);
+			this.before[i] =
+				" ".repeat(time_flag.replace(color_flag_reg, "$3").length) +
+				this.before[i];
+			this.beforeSymbol.splice(start_index, 1);
+		} else {
+			/* 简单模式 */
+			var time_flag = this.before[this.before.length - 1];
+			this.before[this.before.length - 1] = time_flag.replace("│", "└");
+
+			rest_args.unshift(
+				Console.replaceColorContent(
+					time_flag,
+					`(${dateFormat(end_date, this.date_format)}): ${end_date -
+						start_date}ms`
+				)
+			);
+
+			var log_lines = util.format.apply(null, rest_args).split("\n");
+			var args = this.addBefore([log_lines.shift()]);
+			this._console_log(args);
+			this.before.pop();
+
+			while (log_lines.length) {
+				this.log(log_lines.shift());
+			}
+
+			this.beforeSymbol.pop();
+		}
 	}
 	group(...args) {
 		var color_start = "";
@@ -205,7 +371,7 @@ class Console {
 			var color_wrap = may_be_flag.match(color_flag_reg);
 			if (color_wrap) {
 				color_start = color_wrap[1];
-				color_end = color_wrap[3];
+				color_end = color_wrap[4];
 			}
 		}
 		this.before.push(color_start + "┌ " + color_end);
@@ -224,72 +390,80 @@ class Console {
 		this.beforeSymbol.push(res_symbol);
 		return res_symbol;
 	}
-	groupEnd(may_be_symbol, ...rest_args) {
+	groupEnd(symbol, ...rest_args) {
+		if (!util.isSymbol(symbol)) {
+			this._groupEnd(
+				this.beforeSymbol[this.beforeSymbol.length - 1],
+				...rest_args
+			);
+		} else {
+			this._groupEnd(symbol, ...rest_args);
+		}
+	}
+	_groupEnd(start_symbol, ...rest_args) {
+		if (!util.isSymbol(start_symbol)) {
+			throw new Error(GROUPEND_FIRST_ARGUMENT_TYPE_ERROR);
+		}
 		/* 交错模式 */
-		if (util.isSymbol(may_be_symbol)) {
-			const start_index = this.beforeSymbol.lastIndexOf(may_be_symbol);
-			const before_len = this.beforeSymbol.length;
-			if (start_index !== -1 && start_index !== before_len - 1) {
-				/* Match color */
-				var group_flag = this.before[start_index];
+		const start_index = this.beforeSymbol.lastIndexOf(start_symbol);
+		const before_len = this.beforeSymbol.length;
+		if (start_index !== before_len - 1) {
+			/* Match color */
+			var group_flag = this.before[start_index];
 
-				var backup = [];
-				for (var i = start_index + 1; i < before_len; i += 1) {
-					backup.push(this.before[i]);
-					this.before[i] = Console.replaceColorContent(
-						group_flag,
-						this.before[i]
-							.replace(color_flag_reg, "$2") // 删除颜色影响
-							.replace(/(\s*)│(\s*)/, function(
-								s,
-								before_emp_s,
-								after_emp_s
-							) {
-								// 替换空格
-								return (
-									"─".repeat(before_emp_s.length) +
-									"┼" +
-									(i === before_len - 1
-										? after_emp_s
-										: "─".repeat(after_emp_s.length))
-								);
-							})
-					);
-				}
-				this.before[start_index] = group_flag.replace("│ ", "└─");
-
-				var args = this.addBefore(rest_args);
-				this._console_log(args);
-
-				for (i -= 1; i > start_index; i -= 1) {
-					this.before[i] = backup.pop();
-				}
-
-				this.before.splice(start_index, 1);
-				this.before[i] =
-					" ".repeat(
-						group_flag.replace(color_flag_reg, "$2").length
-					) + this.before[i];
-				this.beforeSymbol.splice(start_index, 1);
-				return;
-			} else {
-				// arguments = rest_args;
+			var backup = [];
+			for (var i = start_index + 1; i < before_len; i += 1) {
+				backup.push(this.before[i]);
+				this.before[i] = Console.replaceColorContent(
+					group_flag,
+					this.before[i]
+						.replace(color_flag_reg, "$3") // 删除颜色影响
+						.replace(/(\s*)│(\s*)/, function(
+							s,
+							before_emp_s,
+							after_emp_s
+						) {
+							// 替换空格
+							return (
+								"─".repeat(before_emp_s.length) +
+								"┼" +
+								(i === before_len - 1
+									? after_emp_s
+									: "─".repeat(after_emp_s.length))
+							);
+						})
+				);
 			}
+			this.before[start_index] = group_flag.replace("│ ", "└─");
+
+			var args = this.addBefore(rest_args);
+			this._console_log(args);
+
+			for (i -= 1; i > start_index; i -= 1) {
+				this.before[i] = backup.pop();
+			}
+
+			this.before.splice(start_index, 1);
+			this.before[i] =
+				" ".repeat(group_flag.replace(color_flag_reg, "$3").length) +
+				this.before[i];
+			this.beforeSymbol.splice(start_index, 1);
+		} else {
+			/* 简单模式 */
+			var group_flag = this.before[this.before.length - 1];
+			this.before[this.before.length - 1] = group_flag.replace("│", "└");
+
+			var log_lines = util.format.apply(null, rest_args).split("\n");
+			var args = this.addBefore([log_lines.shift()]);
+			this._console_log(args);
+			this.before.pop();
+
+			while (log_lines.length) {
+				this.log(log_lines.shift());
+			}
+
+			this.beforeSymbol.pop();
 		}
-		/* 简单模式 */
-		var group_flag = this.before[this.before.length - 1];
-		this.before[this.before.length - 1] = group_flag.replace("│", "└");
-
-		var log_lines = util.format.apply(this, rest_args).split("\n");
-		var args = this.addBefore([log_lines.shift()]);
-		this._console_log(args);
-		this.before.pop();
-
-		while (log_lines.length) {
-			this.log(log_lines.shift());
-		}
-
-		this.beforeSymbol.pop();
 	}
 	flag(flag, ...rest_args) {
 		const colored_flag = colorsHead("[" + flag + "]");

@@ -1,10 +1,10 @@
 const { Console } = require("../");
 con = new Console();
-con.time("aaa", 1);
-con.time("aaa", 2);
+var t1 = con.time("aaa", 1);
+var t2 = con.time("aaa", 2);
 con.log("hahha");
-con.timeEnd("aaa", 2);
-con.timeEnd("aaa", 1);
+con.timeEnd(t1,"aaa", 2);
+con.timeEnd(t2,"aaa", 1);
 
 con.group("xx");
 con.log({
