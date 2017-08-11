@@ -39,8 +39,8 @@ const TEXT_COLOR_WITH_BG = (exports.TEXT_COLOR_WITH_BG = (() => {
 			"blue",
 			"magenta",
 			"cyan",
-			"white",
-			"gray"
+			"white"
+			// "gray"
 		],
 		bgYellow: [
 			"black",
@@ -57,10 +57,10 @@ const TEXT_COLOR_WITH_BG = (exports.TEXT_COLOR_WITH_BG = (() => {
 			"red",
 			"green",
 			"yellow",
-			"magenta",
+			// "magenta",
 			// "cyan",
 			"white",
-			"gray"
+			// "gray"
 		],
 		bgMagenta: [
 			"black",
@@ -77,7 +77,7 @@ const TEXT_COLOR_WITH_BG = (exports.TEXT_COLOR_WITH_BG = (() => {
 			"red",
 			"green",
 			"yellow",
-			"blue",
+			// "blue",
 			// "magenta",
 			"white"
 			// "gray"
@@ -90,7 +90,7 @@ const TEXT_COLOR_WITH_BG = (exports.TEXT_COLOR_WITH_BG = (() => {
 			"blue",
 			"magenta",
 			"cyan",
-			"gray"
+			// "gray"
 		]
 	};
 	const res = [];

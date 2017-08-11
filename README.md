@@ -15,12 +15,24 @@ npm install console-pro --save
 const { Console } = require("console-pro");
 const myconsole = new Console({ async_log: true, auto_reduce_indent: true });
 
-const g1 = myconsole.group("G1 Start!");
+const g1 = myconsole.group("G1 Start!"); // no color
+const g2 = myconsole.group(myconsole.flagHead("G2")); // use flag's color
+const g3 = myconsole.group(Console.COLOR.bgBlueWithWhite, "G3"); // use custom color
+const g4 = myconsole.group("G4".green); // use colors api to change string color
 
-await doSomeThing();
+myconsole.info("QAQ");
+myconsole.warn("QAQ");
 
+myconsole.groupEnd(g3, "G3 IS OVER");
+myconsole.groupEnd(g2, "G2 IS OVER");
+
+myconsole.success("QAQ");
+myconsole.error("QAQ");
+
+myconsole.groupEnd(g4, "G4 IS OVER");
 myconsole.groupEnd(g1, "G1 IS OVER");
 ```
+![image](https://user-images.githubusercontent.com/2151644/29200125-4696eabe-7e85-11e7-93cc-2b27bb7fcd10.png)
 
 # Preview
 
@@ -31,7 +43,7 @@ myconsole.groupEnd(g1, "G1 IS OVER");
 ![image](https://user-images.githubusercontent.com/2151644/29110771-71569aa4-7d1a-11e7-975d-f5c7cf1d5b42.png)
 
 ## TEST3
-![image](https://user-images.githubusercontent.com/2151644/29168305-e8877a76-7e00-11e7-9227-3e1ef8c870a6.png)
+![image](https://user-images.githubusercontent.com/2151644/29200142-779145d8-7e85-11e7-91c7-b695afeb9483.png)
 
 # API
 
