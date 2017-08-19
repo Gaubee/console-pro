@@ -25,6 +25,7 @@ const coloredInfoSymbol = colors.underline(colors.blue(infoSymbol));
 const coloredSuccessSymbol = colors.underline(colors.green(successSymbol));
 const coloredWarnSymbol = colors.underline(colors.yellow(warnSymbol));
 const coloredErrorSymbol = colors.underline(colors.red(errorSymbol));
+const noop = () => {};
 
 const TIMEEND_FIRST_ARGUMENT_TYPE_ERROR =
 	".timeEnd's first arguments must a Symbol from .time";
@@ -64,12 +65,12 @@ class Console {
 					_console.error(...args);
 				});
 			};
-			this._console_assert = args => {
+			this.assert = args => {
 				process.nextTick(() => {
 					_console.assert(...args);
 				});
 			};
-			this._console_trace = args => {
+			this.trace = args => {
 				process.nextTick(() => {
 					_console.trace(...args);
 				});
@@ -82,6 +83,58 @@ class Console {
 			this._console_error = args => _console.error(...args);
 			this.assert = _console.assert;
 			this.trace = _console.trace;
+		}
+
+		this._console_log_bak = this._console_log;
+		this._console_info_bak = this._console_info;
+		this._console_debug_bak = this._console_debug;
+		this._console_warn_bak = this._console_warn;
+		this._console_error_bak = this._console_error;
+
+		this._log_bak = this.log;
+		this._info_bak = this.info;
+		this._debug_bak = this.debug;
+		this._success_bak = this.success;
+		this._warn_bak = this.warn;
+		this._error_bak = this.error;
+		this._dir_bak = this.dir;
+		this._group_bak = this.group;
+		this._groupEnd_bak = this.groupEnd;
+		this._time_bak = this.time;
+		this._timeEnd_bak = this.timeEnd;
+		this.current_is_silence = false;
+		this.silence(options.silence);
+	}
+	silence(to_silence) {
+		to_silence = !!to_silence;
+		if (this.current_is_silence == to_silence) {
+			return;
+		}
+		this.current_is_silence = to_silence;
+		if (to_silence) {
+			this.log = noop;
+			this.info = noop;
+			this.debug = noop;
+			this.success = noop;
+			this.warn = noop;
+			this.error = noop;
+			this.dir = noop;
+			this.group = noop;
+			this.groupEnd = noop;
+			this.time = noop;
+			this.timeEnd = noop;
+		} else {
+			this.log = this._log_bak;
+			this.info = this._info_bak;
+			this.debug = this._debug_bak;
+			this.success = this._success_bak;
+			this.warn = this._warn_bak;
+			this.error = this._error_bak;
+			this.dir = this._dir_bak;
+			this.group = this._group_bak;
+			this.groupEnd = this._groupEnd_bak;
+			this.time = this._time_bak;
+			this.timeEnd = this._timeEnd_bak;
 		}
 	}
 	getBeforeForNewLine() {
@@ -322,8 +375,7 @@ class Console {
 			rest_args.unshift(
 				Console.replaceColorContent(
 					time_flag,
-					`(${dateFormat(end_date, this.date_format)}): ${end_date -
-						start_date}ms`
+					`(${dateFormat(end_date, this.date_format)}): ${end_date - start_date}ms`
 				)
 			);
 			var args = this.addBefore(rest_args);
@@ -346,8 +398,7 @@ class Console {
 			rest_args.unshift(
 				Console.replaceColorContent(
 					time_flag,
-					`(${dateFormat(end_date, this.date_format)}): ${end_date -
-						start_date}ms`
+					`(${dateFormat(end_date, this.date_format)}): ${end_date - start_date}ms`
 				)
 			);
 

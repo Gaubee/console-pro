@@ -47,6 +47,12 @@ myconsole.groupEnd(g1, "G1 IS OVER");
 
 # API
 
+## new(options: ConsoleOptions)
+### ConsoleOptions
+#### async_log: bool
+#### auto_reduce_indent: bool
+#### silence: bool
+
 ## .flagHead(headContent :string) :string
 Automatically fill the string.
 
@@ -78,3 +84,6 @@ end an time, like groupEnd, with an Timestamp and TimeSpan(ms).
 ### error(...args)
 
 ### dir(object[, options])
+
+## silence(to_be_silence: bool)
+if true, All the logs will be hidden to improve performance

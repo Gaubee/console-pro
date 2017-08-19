@@ -1,6 +1,10 @@
-var consolePro = require("../")
-const {Console} = consolePro;
-const myconsole = new Console({ async_log: true, auto_reduce_indent: true });
+var consolePro = require("../");
+const { Console } = consolePro;
+const myconsole = new Console({
+	async_log: true,
+	auto_reduce_indent: true,
+	silence: process.argv.indexOf("-s") != -1
+});
 const g1 = myconsole.group("G1 Start!");
 
 myconsole.info("QAQ");
