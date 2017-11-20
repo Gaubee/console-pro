@@ -601,7 +601,8 @@ class TerminalMenu {
 			this.menu = menu(title, (selected_options) => {
 				cb(selected_options)
 			}, logger, opts)
-		})
+		});
+		this.selected_value = this.selected_options.then(options => options.value);
 		this.add = this.addOption
 	}
 	addOption(name, value) {
