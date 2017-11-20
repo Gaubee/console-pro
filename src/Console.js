@@ -3,7 +3,7 @@ const NativeConsole = require("console").Console;
 const gq_config = process.gq_config || {};
 const util = require("util");
 const singleLineLog = require('single-line-log').stdout;
-const menu = require('appendable-cli-menu');
+const menu = require('./menu');
 const {
 	colors,
 	color_flag_reg,
@@ -585,21 +585,24 @@ class Console {
 	clear() {
 		singleLineLog.clear();
 	}
-	menu(...args) {
-		var mix_args = this.addBeforeForNewLine(args);
-		return new TerminalMenu(util.format.apply(null, mix_args))
+	menu(title, opts) {
+		return new TerminalMenu(title, Object.assign({
+			waiting_msg: " （请稍后……）",
+			useArrowKeys_msg: " （使用方向键进行选择）"
+		}, opts), this.line.bind(this));
 	}
 }
 Console.COLOR = COLOR_ENUM;
 exports.Console = Console;
 
 class TerminalMenu {
-	constructor(...args) {
+	constructor(title, opts, logger) {
 		this.selected_options = new Promise((cb) => {
-			this.menu = menu(args.join(' '), (selected_options) => {
+			this.menu = menu(title, (selected_options) => {
 				cb(selected_options)
-			})
+			}, logger, opts)
 		})
+		this.add = this.addOption
 	}
 	addOption(name, value) {
 		this.menu.add({
