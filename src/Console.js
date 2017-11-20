@@ -154,7 +154,7 @@ class Console {
 			this.timeEnd = this._timeEnd_bak;
 		}
 	}
-	getBeforeForNewLine() {
+	getBeforeForNewLine(opts) {
 		if (this.config.auto_reduce_indent) {
 			var reduce_indent_set = (this.__reduce_indent_set = []);
 			var new_before = this.before.slice().map((char, i) => {
@@ -233,17 +233,33 @@ class Console {
 			}
 		};
 	}
-	addBefore(arr) {
+	addBefore(arr, opts) {
 		arr = Array.prototype.slice.call(arr);
 		var strs = util.format(...arr);
 		var before_str = this.before.join("");
 		strs = before_str + strs.replace(/\n/g, "\n" + before_str);
+
+		if (this._after_log_new_line) { // 使用line打印后，后面没有回车符号，需要在新行中另外起一个\n
+			if (!(opts && opts.from_line)) {
+				strs = '\n' + strs;
+				this._after_log_new_line = false;
+			}
+		}
 		return [strs];
 	}
-	addBeforeForNewLine(arr) {
-		this.before = this.getBeforeForNewLine();
-		var res = this.addBefore(arr);
+	addBeforeForNewLine(arr, opts) {
+		this.before = this.getBeforeForNewLine(opts);
+
+		if (this._after_log_new_line) { // 使用line打印后，后面没有回车符号，需要在新行中另外起一个\n
+			if (!(opts && opts.from_line)) {
+				var unshift_new_line = true;
+			}
+		}
+		var res = this.addBefore(arr, opts);
 		this.before = this.coverBeforeForNewLine();
+		if (unshift_new_line && this.before[0] && this.before[0][0] === '\n') {
+			this.before[0] = this.before[0].substr(1);
+		}
 		return res;
 	}
 	log(...args) {
@@ -560,8 +576,11 @@ class Console {
 		namespace = namespace + "";
 	}
 	line(...args) {
-		var mix_args = this.addBeforeForNewLine(args);
+		var mix_args = this.addBeforeForNewLine(args, {
+			from_line: true
+		});
 		singleLineLog(mix_args);
+		this._after_log_new_line = true;
 	}
 	clear() {
 		singleLineLog.clear();
