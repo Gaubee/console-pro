@@ -24,6 +24,9 @@
   },
   "homepage": "https://github.com/Gaubee/console-pro#readme",
   "dependencies": {
-    "colors": "^1.1.2"
+    "appendable-cli-menu": "^2.0.0",
+    "colors": "^1.1.2",
+    "single-line-log": "^1.1.2",
+    "socket.io": "^2.0.3"
   }
 }

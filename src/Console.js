@@ -1,8 +1,9 @@
 /* @flow */
-const _console = global.console;
-const _log = _console.log;
+const NativeConsole = require("console").Console;
 const gq_config = process.gq_config || {};
 const util = require("util");
+const singleLineLog = require('single-line-log').stdout;
+const menu = require('appendable-cli-menu');
 const {
 	colors,
 	color_flag_reg,
@@ -13,8 +14,15 @@ const {
 	TEXT_COLOR_WITHOUT_BG,
 	TEXT_COLOR_WITH_BG
 } = require("./stringColor");
-const { replaceAll } = require("./replaceAll");
-const { dateFormat } = require("./dateFormat");
+const {
+	replaceAll
+} = require("./replaceAll");
+const {
+	dateFormat
+} = require("./dateFormat");
+const {
+	getServerInstance
+} = require("./web");
 const {
 	infoSymbol,
 	successSymbol,
@@ -37,7 +45,16 @@ class Console {
 		this.beforeSymbol = [];
 		this.date_format = "hh:mm:ss MM-DD";
 		this.timeMap = {};
+		this.child = [];
+		this.namespace = (options.namespace || "") + "";
+		this.web = null;
+		if (options.web) {
+			this.io = getServerInstance(options.web, this.namespace);
+		} else {
+			this.io = process;
+		}
 
+		const _console = NativeConsole(this.io.stdout, this.io.stderr);
 		const config = (this.config = options);
 		if (config.async_log) {
 			this._console_log = args => {
@@ -144,7 +161,7 @@ class Console {
 				if (char.startsWith("  ") && char.includes("│")) {
 					//两个空格以上才进行缩进减少，多个空格合成一个
 					return char
-						.replace(/^\s+/, function(match_str) {
+						.replace(/^\s+/, function (match_str) {
 							reduce_indent_set[i] = match_str.length - 1;
 							return "";
 						})
@@ -269,8 +286,7 @@ class Console {
 		var args = this.addBeforeForNewLine([
 			util.inspect(
 				object,
-				util._extend(
-					{
+				util._extend({
 						customInspect: false
 					},
 					options
@@ -299,9 +315,9 @@ class Console {
 		}
 		this.before.push(
 			color_start +
-				`┌ (${dateFormat(start_date, this.date_format)})` +
-				color_end +
-				" "
+			`┌ (${dateFormat(start_date, this.date_format)})` +
+			color_end +
+			" "
 		);
 		var log_lines = util.format(...args).split("\n");
 		var args = this.addBefore([log_lines.shift()]);
@@ -353,21 +369,21 @@ class Console {
 				this.before[i] = Console.replaceColorContent(
 					time_flag,
 					this.before[i]
-						.replace(color_flag_reg, "$3") // 删除颜色影响
-						.replace(/(\s*)│(\s*)/, function(
-							s,
-							before_emp_s,
-							after_emp_s
-						) {
-							// 替换空格
-							return (
-								"─".repeat(before_emp_s.length) +
-								"┼" +
-								(i === before_len - 1
-									? after_emp_s
-									: "─".repeat(after_emp_s.length))
-							);
-						})
+					.replace(color_flag_reg, "$3") // 删除颜色影响
+					.replace(/(\s*)│(\s*)/, function (
+						s,
+						before_emp_s,
+						after_emp_s
+					) {
+						// 替换空格
+						return (
+							"─".repeat(before_emp_s.length) +
+							"┼" +
+							(i === before_len - 1 ?
+								after_emp_s :
+								"─".repeat(after_emp_s.length))
+						);
+					})
 				);
 			}
 			this.before[start_index] = time_flag.replace("│ ", "└─");
@@ -474,21 +490,21 @@ class Console {
 				this.before[i] = Console.replaceColorContent(
 					group_flag,
 					this.before[i]
-						.replace(color_flag_reg, "$3") // 删除颜色影响
-						.replace(/(\s*)│(\s*)/, function(
-							s,
-							before_emp_s,
-							after_emp_s
-						) {
-							// 替换空格
-							return (
-								"─".repeat(before_emp_s.length) +
-								"┼" +
-								(i === before_len - 1
-									? after_emp_s
-									: "─".repeat(after_emp_s.length))
-							);
-						})
+					.replace(color_flag_reg, "$3") // 删除颜色影响
+					.replace(/(\s*)│(\s*)/, function (
+						s,
+						before_emp_s,
+						after_emp_s
+					) {
+						// 替换空格
+						return (
+							"─".repeat(before_emp_s.length) +
+							"┼" +
+							(i === before_len - 1 ?
+								after_emp_s :
+								"─".repeat(after_emp_s.length))
+						);
+					})
 				);
 			}
 			this.before[start_index] = group_flag.replace("│ ", "└─");
@@ -537,6 +553,39 @@ class Console {
 			return colorsHead("[" + flag + "]");
 		}
 	}
+	child(namespace) {
+		if (namespace === void 0) {
+			namespace = this.child.length;
+		}
+		namespace = namespace + "";
+	}
+	line(...args) {
+		var mix_args = this.addBeforeForNewLine(args);
+		singleLineLog(mix_args);
+	}
+	clear() {
+		singleLineLog.clear();
+	}
+	menu(...args) {
+		var mix_args = this.addBeforeForNewLine(args);
+		return new TerminalMenu(util.format.apply(null, mix_args))
+	}
 }
 Console.COLOR = COLOR_ENUM;
 exports.Console = Console;
+
+class TerminalMenu {
+	constructor(...args) {
+		this.selected_options = new Promise((cb) => {
+			this.menu = menu(args.join(' '), (selected_options) => {
+				cb(selected_options)
+			})
+		})
+	}
+	addOption(name, value) {
+		this.menu.add({
+			name: name,
+			value: value
+		});
+	}
+}
