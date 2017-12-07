@@ -604,6 +604,7 @@ class Console {
 				input: process.stdin,
 				output: process.stdout
 			});
+			process.stdin.setRawMode(false);
 			var mix_args = this.addBeforeForNewLine([question]);
 			rl.question(mix_args, answer => {
 				if (filter instanceof Function) {
