@@ -17,7 +17,6 @@ const {
 } = require('./stringColor');
 const { replaceAll } = require('./replaceAll');
 const { dateFormat } = require('./dateFormat');
-const { getServerInstance } = require('./web');
 const {
 	infoSymbol,
 	successSymbol,
@@ -43,11 +42,7 @@ class Console {
 		this.child = [];
 		this.namespace = (options.namespace || '') + '';
 		this.web = null;
-		if (options.web) {
-			this.io = getServerInstance(options.web, this.namespace);
-		} else {
-			this.io = process;
-		}
+		this.io = process;
 
 		const _console = NativeConsole(this.io.stdout, this.io.stderr);
 		const config = (this.config = options);
