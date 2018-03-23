@@ -624,7 +624,7 @@ class Console {
 	}
 }
 Console.COLOR = COLOR_ENUM;
-exports.Console = Console;
+exports.ConsolePro = Console;
 
 class TerminalMenu {
 	constructor(title, opts, logger) {

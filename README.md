@@ -12,12 +12,12 @@ npm install console-pro --save
 # Usage
 
 ```js
-const { Console } = require("console-pro");
-const myconsole = new Console({ async_log: true, auto_reduce_indent: true });
+const { ConsolePro } = require("console-pro");
+const myconsole = new ConsolePro({ async_log: true, auto_reduce_indent: true });
 
 const g1 = myconsole.group("G1 Start!"); // no color
 const g2 = myconsole.group(myconsole.flagHead("G2")); // use flag's color
-const g3 = myconsole.group(Console.COLOR.bgBlueWithWhite, "G3"); // use custom color
+const g3 = myconsole.group(ConsolePro.COLOR.bgBlueWithWhite, "G3"); // use custom color
 const g4 = myconsole.group("G4".green); // use colors api to change string color
 
 myconsole.info("QAQ");
