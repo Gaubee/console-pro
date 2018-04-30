@@ -120,7 +120,7 @@ const TEXT_COLOR = TEXT_COLOR_WITHOUT_BG.concat(TEXT_COLOR_WITH_BG);
 // });
 function colorsHead(str, to_color, colorList = TEXT_COLOR) {
 	return str.replace(/\[(.)+\]/, function(head) {
-		if (!(to_color && COLOR_STYLES.hasOwnProperty(color_style))) {
+		if (!(to_color && COLOR_STYLES.hasOwnProperty(to_color))) {
 			var _head = head.replace(/\s/g, "");
 			to_color =
 				colorList[
