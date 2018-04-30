@@ -1,6 +1,6 @@
 {
   "name": "console-pro",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Better console for support console.group",
   "main": "index.js",
   "scripts": {

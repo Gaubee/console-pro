@@ -11,6 +11,8 @@ type ConsoleOptions = {
 	async_log?: boolean;
 	auto_reduce_indent?: boolean;
 	silence?: boolean;
+	date_format?: string;
+	time_fixed?: number;
 };
 
 export declare class ConsolePro {

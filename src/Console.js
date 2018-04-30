@@ -1,10 +1,11 @@
 /* @flow */
-const NativeConsole = require('console').Console;
+const NativeConsole = require("console").Console;
 const gq_config = process.gq_config || {};
-const util = require('util');
-const readline = require('readline');
-const singleLineLog = require('single-line-log').stdout;
-const menu = require('./menu');
+const util = require("util");
+const readline = require("readline");
+const { performance } = require("perf_hooks");
+const singleLineLog = require("single-line-log").stdout;
+const menu = require("./menu");
 const {
 	colors,
 	color_flag_reg,
@@ -14,15 +15,15 @@ const {
 	COLOR_MAP,
 	TEXT_COLOR_WITHOUT_BG,
 	TEXT_COLOR_WITH_BG
-} = require('./stringColor');
-const { replaceAll } = require('./replaceAll');
-const { dateFormat } = require('./dateFormat');
+} = require("./stringColor");
+const { replaceAll } = require("./replaceAll");
+const { dateFormat } = require("./dateFormat");
 const {
 	infoSymbol,
 	successSymbol,
 	warnSymbol,
 	errorSymbol
-} = require('./specialSymbol');
+} = require("./specialSymbol");
 const coloredInfoSymbol = colors.underline(colors.blue(infoSymbol));
 const coloredSuccessSymbol = colors.underline(colors.green(successSymbol));
 const coloredWarnSymbol = colors.underline(colors.yellow(warnSymbol));
@@ -37,10 +38,13 @@ class Console {
 	constructor(options = {}) {
 		this.before = [];
 		this.beforeSymbol = [];
-		this.date_format = 'hh:mm:ss MM-DD';
+		this.date_format = options.date_format || "hh:mm:ss MM-DD";
+		this.time_fixed = isFinite(options.time_fixed)
+			? options.time_fixed | 0
+			: 4;
 		this.timeMap = {};
 		this.child = [];
-		this.namespace = (options.namespace || '') + '';
+		this.namespace = (options.namespace || "") + "";
 		this.web = null;
 		this.io = process;
 
@@ -148,16 +152,16 @@ class Console {
 		if (this.config.auto_reduce_indent) {
 			var reduce_indent_set = (this.__reduce_indent_set = []);
 			var new_before = this.before.slice().map((char, i) => {
-				if (char.startsWith('  ') && char.includes('│')) {
+				if (char.startsWith("  ") && char.includes("│")) {
 					//两个空格以上才进行缩进减少，多个空格合成一个
 					return char
 						.replace(/^\s+/, function(match_str) {
 							reduce_indent_set[i] = match_str.length - 1;
-							return '';
+							return "";
 						})
 						.replace(
-							'│',
-							'┌' + '─'.repeat(reduce_indent_set[i]) + '┘'
+							"│",
+							"┌" + "─".repeat(reduce_indent_set[i]) + "┘"
 						);
 				} else {
 					reduce_indent_set[i] = 0;
@@ -188,10 +192,10 @@ class Console {
 			for (var i = 0; i < new_before.length; i += 1) {
 				var cur_char_reduce_indent = reduce_indent_set[i];
 				if (cur_char_reduce_indent) {
-					new_before[i] = new_before[i].replace(/┌─*┘/, '│');
+					new_before[i] = new_before[i].replace(/┌─*┘/, "│");
 					if (new_before[i + 1]) {
 						new_before[i + 1] =
-							' '.repeat(cur_char_reduce_indent + 1) +
+							" ".repeat(cur_char_reduce_indent + 1) +
 							new_before[i + 1];
 					}
 				}
@@ -202,23 +206,23 @@ class Console {
 	}
 	static replaceColorContent(str, replacer) {
 		if (color_flag_reg.test(str)) {
-			replacer = replacer.replace(color_flag_reg, '$3');
+			replacer = replacer.replace(color_flag_reg, "$3");
 			return str
 				.trim()
 				.replace(
 					color_flag_reg,
-					'$1' + replaceAll(replacer, '$', '$$$$') + '$4'
+					"$1" + replaceAll(replacer, "$", "$$$$") + "$4"
 				);
 		}
 		return replacer;
 	}
 	T(flag) {
 		const _s = Date.now();
-		console.flag(flag, 'START!');
+		console.flag(flag, "START!");
 		return {
 			end(p) {
 				const res = Date.now() - _s;
-				console.flag(flag, p || '', res, 'ms');
+				console.flag(flag, p || "", res, "ms");
 				return res;
 			}
 		};
@@ -226,13 +230,13 @@ class Console {
 	addBefore(arr, opts) {
 		arr = Array.prototype.slice.call(arr);
 		var strs = util.format(...arr);
-		var before_str = this.before.join('');
-		strs = before_str + strs.replace(/\n/g, '\n' + before_str);
+		var before_str = this.before.join("");
+		strs = before_str + strs.replace(/\n/g, "\n" + before_str);
 
 		if (this._after_log_new_line) {
 			// 使用line打印后，后面没有回车符号，需要在新行中另外起一个\n
 			if (!(opts && opts.from_line)) {
-				strs = '\n' + strs;
+				strs = "\n" + strs;
 				this._after_log_new_line = false;
 			}
 		}
@@ -249,7 +253,7 @@ class Console {
 		}
 		var res = this.addBefore(arr, opts);
 		this.before = this.coverBeforeForNewLine();
-		if (unshift_new_line && this.before[0] && this.before[0][0] === '\n') {
+		if (unshift_new_line && this.before[0] && this.before[0][0] === "\n") {
 			this.before[0] = this.before[0].substr(1);
 		}
 		return res;
@@ -278,15 +282,15 @@ class Console {
 		this._console_warn(mix_args);
 	}
 	error(...args) {
-		const errorFormateds = util.format(...args).split('\n');
+		const errorFormateds = util.format(...args).split("\n");
 		const firstLine =
 			coloredErrorSymbol +
-			' ' +
+			" " +
 			colors.red(errorFormateds.shift()) +
-			(errorFormateds.length ? '\n' : '');
+			(errorFormateds.length ? "\n" : "");
 		const errorBody = errorFormateds
 			.map(s => colors.bgRed(colors.black(s)))
-			.join('\n');
+			.join("\n");
 		var mix_args = this.addBeforeForNewLine([firstLine + errorBody]);
 		this._console_error(mix_args);
 	}
@@ -300,14 +304,15 @@ class Console {
 					},
 					options
 				)
-			) + '\n'
+			) + "\n"
 		]);
 		this._console_log(args);
 	}
 	time(...args) {
 		var start_date = new Date();
-		var color_start = '';
-		var color_end = '';
+		start_date.__p_now = performance.now();
+		var color_start = "";
+		var color_end = "";
 		var may_be_flag = args[0];
 		if (util.isSymbol(may_be_flag) && COLOR_MAP.has(may_be_flag)) {
 			var style = COLOR_MAP.get(may_be_flag);
@@ -315,7 +320,7 @@ class Console {
 			color_end = style.close;
 			// arguments = Array.slice(arguments, 1);
 			args.shift();
-		} else if (typeof may_be_flag === 'string') {
+		} else if (typeof may_be_flag === "string") {
 			var color_wrap = may_be_flag.match(color_flag_reg);
 			if (color_wrap) {
 				color_start = color_wrap[1];
@@ -326,14 +331,14 @@ class Console {
 			color_start +
 				`┌ (${dateFormat(start_date, this.date_format)})` +
 				color_end +
-				' '
+				" "
 		);
-		var log_lines = util.format(...args).split('\n');
+		var log_lines = util.format(...args).split("\n");
 		var args = this.addBefore([log_lines.shift()]);
 		this._console_log(args);
 
 		this.before.pop();
-		this.before.push(color_start + '│ ' + color_end);
+		this.before.push(color_start + "│ " + color_end);
 
 		while (log_lines.length) {
 			this.log(log_lines.shift());
@@ -366,6 +371,7 @@ class Console {
 			throw new Error(TIMEEND_FIRST_ARGUMENT_TYPE_ERROR);
 		}
 		const end_date = new Date();
+		end_date.__p_now = performance.now();
 		delete this.timeMap[start_symbol];
 
 		if (start_index !== before_len - 1) {
@@ -378,7 +384,7 @@ class Console {
 				this.before[i] = Console.replaceColorContent(
 					time_flag,
 					this.before[i]
-						.replace(color_flag_reg, '$3') // 删除颜色影响
+						.replace(color_flag_reg, "$3") // 删除颜色影响
 						.replace(/(\s*)│(\s*)/, function(
 							s,
 							before_emp_s,
@@ -386,22 +392,26 @@ class Console {
 						) {
 							// 替换空格
 							return (
-								'─'.repeat(before_emp_s.length) +
-								'┼' +
+								"─".repeat(before_emp_s.length) +
+								"┼" +
 								(i === before_len - 1
 									? after_emp_s
-									: '─'.repeat(after_emp_s.length))
+									: "─".repeat(after_emp_s.length))
 							);
 						})
 				);
 			}
-			this.before[start_index] = time_flag.replace('│ ', '└─');
+			this.before[start_index] = time_flag.replace("│ ", "└─");
 
 			rest_args.unshift(
 				Console.replaceColorContent(
 					time_flag,
-					`(${dateFormat(end_date, this.date_format)}): ${end_date -
-						start_date}ms`
+					`(${dateFormat(
+						end_date,
+						this.date_format
+					)}): ${(end_date.__p_now - start_date.__p_now).toFixed(
+						this.time_fixed
+					)}ms`
 				)
 			);
 			var args = this.addBefore(rest_args);
@@ -413,23 +423,27 @@ class Console {
 
 			this.before.splice(start_index, 1);
 			this.before[i] =
-				' '.repeat(time_flag.replace(color_flag_reg, '$3').length) +
+				" ".repeat(time_flag.replace(color_flag_reg, "$3").length) +
 				this.before[i];
 			this.beforeSymbol.splice(start_index, 1);
 		} else {
 			/* 简单模式 */
 			var time_flag = this.before[this.before.length - 1];
-			this.before[this.before.length - 1] = time_flag.replace('│', '└');
+			this.before[this.before.length - 1] = time_flag.replace("│", "└");
 
 			rest_args.unshift(
 				Console.replaceColorContent(
 					time_flag,
-					`(${dateFormat(end_date, this.date_format)}): ${end_date -
-						start_date}ms`
+					`(${dateFormat(
+						end_date,
+						this.date_format
+					)}): ${(end_date.__p_now - start_date.__p_now).toFixed(
+						this.time_fixed
+					)}ms`
 				)
 			);
 
-			var log_lines = util.format.apply(null, rest_args).split('\n');
+			var log_lines = util.format.apply(null, rest_args).split("\n");
 			var args = this.addBefore([log_lines.shift()]);
 			this._console_log(args);
 			this.before.pop();
@@ -442,8 +456,8 @@ class Console {
 		}
 	}
 	group(...args) {
-		var color_start = '';
-		var color_end = '';
+		var color_start = "";
+		var color_end = "";
 		var may_be_flag = args[0];
 		if (util.isSymbol(may_be_flag) && COLOR_MAP.has(may_be_flag)) {
 			var style = COLOR_MAP.get(may_be_flag);
@@ -451,20 +465,20 @@ class Console {
 			color_end = style.close;
 			// arguments = Array.slice(arguments, 1);
 			args.shift();
-		} else if (typeof may_be_flag === 'string') {
+		} else if (typeof may_be_flag === "string") {
 			var color_wrap = may_be_flag.match(color_flag_reg);
 			if (color_wrap) {
 				color_start = color_wrap[1];
 				color_end = color_wrap[4];
 			}
 		}
-		this.before.push(color_start + '┌ ' + color_end);
-		var log_lines = util.format(...args).split('\n');
+		this.before.push(color_start + "┌ " + color_end);
+		var log_lines = util.format(...args).split("\n");
 		var args = this.addBefore([log_lines.shift()]);
 		this._console_log(args);
 
 		this.before.pop();
-		this.before.push(color_start + '│ ' + color_end);
+		this.before.push(color_start + "│ " + color_end);
 
 		while (log_lines.length) {
 			this.log(log_lines.shift());
@@ -501,7 +515,7 @@ class Console {
 				this.before[i] = Console.replaceColorContent(
 					group_flag,
 					this.before[i]
-						.replace(color_flag_reg, '$3') // 删除颜色影响
+						.replace(color_flag_reg, "$3") // 删除颜色影响
 						.replace(/(\s*)│(\s*)/, function(
 							s,
 							before_emp_s,
@@ -509,16 +523,16 @@ class Console {
 						) {
 							// 替换空格
 							return (
-								'─'.repeat(before_emp_s.length) +
-								'┼' +
+								"─".repeat(before_emp_s.length) +
+								"┼" +
 								(i === before_len - 1
 									? after_emp_s
-									: '─'.repeat(after_emp_s.length))
+									: "─".repeat(after_emp_s.length))
 							);
 						})
 				);
 			}
-			this.before[start_index] = group_flag.replace('│ ', '└─');
+			this.before[start_index] = group_flag.replace("│ ", "└─");
 
 			var args = this.addBefore(rest_args);
 			this._console_log(args);
@@ -529,15 +543,15 @@ class Console {
 
 			this.before.splice(start_index, 1);
 			this.before[i] =
-				' '.repeat(group_flag.replace(color_flag_reg, '$3').length) +
+				" ".repeat(group_flag.replace(color_flag_reg, "$3").length) +
 				this.before[i];
 			this.beforeSymbol.splice(start_index, 1);
 		} else {
 			/* 简单模式 */
 			var group_flag = this.before[this.before.length - 1];
-			this.before[this.before.length - 1] = group_flag.replace('│', '└');
+			this.before[this.before.length - 1] = group_flag.replace("│", "└");
 
-			var log_lines = util.format.apply(null, rest_args).split('\n');
+			var log_lines = util.format.apply(null, rest_args).split("\n");
 			var args = this.addBefore([log_lines.shift()]);
 			this._console_log(args);
 			this.before.pop();
@@ -550,25 +564,25 @@ class Console {
 		}
 	}
 	flag(flag, ...rest_args) {
-		const colored_flag = colorsHead('[' + flag + ']');
+		const colored_flag = colorsHead("[" + flag + "]");
 		this.log(colored_flag, ...rest_args);
 	}
 	flagHead(flag, withBG) {
-		if (typeof withBG === 'boolean') {
+		if (typeof withBG === "boolean") {
 			return colorsHead(
-				'[' + flag + ']',
+				"[" + flag + "]",
 				null,
 				withBG ? TEXT_COLOR_WITH_BG : TEXT_COLOR_WITHOUT_BG
 			);
 		} else {
-			return colorsHead('[' + flag + ']');
+			return colorsHead("[" + flag + "]");
 		}
 	}
 	child(namespace) {
 		if (namespace === void 0) {
 			namespace = this.child.length;
 		}
-		namespace = namespace + '';
+		namespace = namespace + "";
 	}
 	line(...args) {
 		var mix_args = this.addBeforeForNewLine(args, {
@@ -585,8 +599,8 @@ class Console {
 			title,
 			Object.assign(
 				{
-					waiting_msg: ' （请稍后……）',
-					useArrowKeys_msg: ' （使用方向键进行选择）'
+					waiting_msg: " （请稍后……）",
+					useArrowKeys_msg: " （使用方向键进行选择）"
 				},
 				opts
 			),
