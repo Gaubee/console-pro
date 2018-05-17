@@ -3,7 +3,15 @@ const NativeConsole = require("console").Console;
 const gq_config = process.gq_config || {};
 const util = require("util");
 const readline = require("readline");
-const { performance } = require("perf_hooks");
+// const { performance } = require("perf_hooks");
+/**
+ * 
+ * @param {[number, number]} hrtime
+ */
+const hrtime_format_2_ms = (hrtime) => {
+	// const NS_PER_SEC = 1e9;
+	return hrtime[0] * 1e3 + hrtime[1] / 1e6
+}
 const singleLineLog = require("single-line-log").stdout;
 const menu = require("./menu");
 const {
@@ -16,8 +24,12 @@ const {
 	TEXT_COLOR_WITHOUT_BG,
 	TEXT_COLOR_WITH_BG
 } = require("./stringColor");
-const { replaceAll } = require("./replaceAll");
-const { dateFormat } = require("./dateFormat");
+const {
+	replaceAll
+} = require("./replaceAll");
+const {
+	dateFormat
+} = require("./dateFormat");
 const {
 	infoSymbol,
 	successSymbol,
@@ -39,9 +51,9 @@ class Console {
 		this.before = [];
 		this.beforeSymbol = [];
 		this.date_format = options.date_format || "hh:mm:ss MM-DD";
-		this.time_fixed = isFinite(options.time_fixed)
-			? options.time_fixed | 0
-			: 4;
+		this.time_fixed = isFinite(options.time_fixed) ?
+			options.time_fixed | 0 :
+			4;
 		this.timeMap = {};
 		this.child = [];
 		this.namespace = (options.namespace || "") + "";
@@ -155,7 +167,7 @@ class Console {
 				if (char.startsWith("  ") && char.includes("│")) {
 					//两个空格以上才进行缩进减少，多个空格合成一个
 					return char
-						.replace(/^\s+/, function(match_str) {
+						.replace(/^\s+/, function (match_str) {
 							reduce_indent_set[i] = match_str.length - 1;
 							return "";
 						})
@@ -298,8 +310,7 @@ class Console {
 		var args = this.addBeforeForNewLine([
 			util.inspect(
 				object,
-				util._extend(
-					{
+				util._extend({
 						customInspect: false
 					},
 					options
@@ -310,7 +321,7 @@ class Console {
 	}
 	time(...args) {
 		var start_date = new Date();
-		start_date.__p_now = performance.now();
+		start_date.__hrt = process.hrtime();
 		var color_start = "";
 		var color_end = "";
 		var may_be_flag = args[0];
@@ -329,9 +340,9 @@ class Console {
 		}
 		this.before.push(
 			color_start +
-				`┌ (${dateFormat(start_date, this.date_format)})` +
-				color_end +
-				" "
+			`┌ (${dateFormat(start_date, this.date_format)})` +
+			color_end +
+			" "
 		);
 		var log_lines = util.format(...args).split("\n");
 		var args = this.addBefore([log_lines.shift()]);
@@ -371,7 +382,7 @@ class Console {
 			throw new Error(TIMEEND_FIRST_ARGUMENT_TYPE_ERROR);
 		}
 		const end_date = new Date();
-		end_date.__p_now = performance.now();
+		end_date.__hrd = process.hrtime(start_date.__hrt);
 		delete this.timeMap[start_symbol];
 
 		if (start_index !== before_len - 1) {
@@ -384,21 +395,21 @@ class Console {
 				this.before[i] = Console.replaceColorContent(
 					time_flag,
 					this.before[i]
-						.replace(color_flag_reg, "$3") // 删除颜色影响
-						.replace(/(\s*)│(\s*)/, function(
-							s,
-							before_emp_s,
-							after_emp_s
-						) {
-							// 替换空格
-							return (
-								"─".repeat(before_emp_s.length) +
-								"┼" +
-								(i === before_len - 1
-									? after_emp_s
-									: "─".repeat(after_emp_s.length))
-							);
-						})
+					.replace(color_flag_reg, "$3") // 删除颜色影响
+					.replace(/(\s*)│(\s*)/, function (
+						s,
+						before_emp_s,
+						after_emp_s
+					) {
+						// 替换空格
+						return (
+							"─".repeat(before_emp_s.length) +
+							"┼" +
+							(i === before_len - 1 ?
+								after_emp_s :
+								"─".repeat(after_emp_s.length))
+						);
+					})
 				);
 			}
 			this.before[start_index] = time_flag.replace("│ ", "└─");
@@ -409,7 +420,7 @@ class Console {
 					`(${dateFormat(
 						end_date,
 						this.date_format
-					)}): ${(end_date.__p_now - start_date.__p_now).toFixed(
+					)}): ${hrtime_format_2_ms(end_date.__hrd).toFixed(
 						this.time_fixed
 					)}ms`
 				)
@@ -437,7 +448,7 @@ class Console {
 					`(${dateFormat(
 						end_date,
 						this.date_format
-					)}): ${(end_date.__p_now - start_date.__p_now).toFixed(
+					)}): ${hrtime_format_2_ms(end_date.__hrd).toFixed(
 						this.time_fixed
 					)}ms`
 				)
@@ -515,21 +526,21 @@ class Console {
 				this.before[i] = Console.replaceColorContent(
 					group_flag,
 					this.before[i]
-						.replace(color_flag_reg, "$3") // 删除颜色影响
-						.replace(/(\s*)│(\s*)/, function(
-							s,
-							before_emp_s,
-							after_emp_s
-						) {
-							// 替换空格
-							return (
-								"─".repeat(before_emp_s.length) +
-								"┼" +
-								(i === before_len - 1
-									? after_emp_s
-									: "─".repeat(after_emp_s.length))
-							);
-						})
+					.replace(color_flag_reg, "$3") // 删除颜色影响
+					.replace(/(\s*)│(\s*)/, function (
+						s,
+						before_emp_s,
+						after_emp_s
+					) {
+						// 替换空格
+						return (
+							"─".repeat(before_emp_s.length) +
+							"┼" +
+							(i === before_len - 1 ?
+								after_emp_s :
+								"─".repeat(after_emp_s.length))
+						);
+					})
 				);
 			}
 			this.before[start_index] = group_flag.replace("│ ", "└─");
@@ -597,8 +608,7 @@ class Console {
 	menu(title, opts) {
 		return new TerminalMenu(
 			title,
-			Object.assign(
-				{
+			Object.assign({
 					waiting_msg: " （请稍后……）",
 					useArrowKeys_msg: " （使用方向键进行选择）"
 				},
