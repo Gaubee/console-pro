@@ -1,10 +1,13 @@
 {
   "name": "console-pro",
-  "version": "2.0.3",
+  "version": "3.0.0",
   "description": "Better console for support console.group",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "type": "dist/index.d.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc --build",
+    "dev": "tsc --build -w",
+    "test": "ava"
   },
   "repository": {
     "type": "git",
@@ -24,8 +27,14 @@
   },
   "homepage": "https://github.com/Gaubee/console-pro#readme",
   "dependencies": {
+    "@types/colors": "^1.2.1",
+    "@types/node": "^11.12.2",
     "colors": "^1.1.2",
     "keypress": "^0.2.1",
     "single-line-log": "^1.1.2"
+  },
+  "devDependencies": {
+    "ts-node": "^8.0.3",
+    "typescript": "^3.4.1"
   }
 }

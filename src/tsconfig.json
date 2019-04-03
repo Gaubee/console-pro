@@ -1,0 +1,17 @@
+{
+    "extends": "../tsconfig-base.json",
+    "compilerOptions": {
+        "outDir": "../dist"
+    },
+    "files": [
+        "./index.ts",
+        "./types.ts",
+        "./Console.ts",
+        "./dateFormat.ts",
+        "./fsHelper.ts",
+        "./menu.ts",
+        "./replaceAll.ts",
+        "./specialSymbol.ts",
+        "./stringColor.ts",
+    ]
+}
