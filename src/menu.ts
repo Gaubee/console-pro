@@ -1,144 +1,190 @@
 "use strict";
 
-var keypress = require("keypress");
-var colors = require("colors");
+const keypress = require("keypress");
+const colors = require("colors");
+const MENU_SYMBOL = Symbol("menu");
+keypress(process.stdin);
 
-export function menu(
-  title: string,
-  cb: (selected_option: ConsolePro.MenuOption) => any,
-  log: Console["log"],
-  opts: ConsolePro.MenuConfig = {}
-) {
-  var items: ConsolePro.MenuOption[] = [];
-  var isRaw = process.stdin.isRaw;
-  var active = true;
-  var moved = false;
-  var selected = 0;
+export class TerminalMenu {
+  [MENU_SYMBOL] = true;
 
-  var waiting_msg = opts.waiting_msg || " (waiting...)";
-  var useArrowKeys_msg = opts.useArrowKeys_msg || " (use arrow keys)";
-
-  keypress(process.stdin);
-  process.stdin.on("keypress", onkeypress);
-  if (!isRaw) process.stdin.setRawMode && process.stdin.setRawMode(true);
-  process.stdin.resume();
-  draw();
-
-  const key_map = new Map<string, number>();
-  function add(item: string | ConsolePro.MenuOption) {
-    if (!active) return;
-    if (typeof item === "string") {
-      item = {
-        name: item,
-        value: item
-      };
+  constructor(
+    public title: string,
+    public opts: ConsolePro.MenuConfig,
+    public log: Console["log"]
+  ) {
+    opts.waiting_msg && (this.waiting_msg = opts.waiting_msg);
+    opts.useArrowKeys_msg && (this.useArrowKeys_msg = opts.useArrowKeys_msg);
+    this.onkeypress = this.onkeypress.bind(this);
+    if (!opts.isChild) {
+      this.startSelect();
+    }
+  }
+  private waiting_msg = " (waiting...)";
+  private useArrowKeys_msg = " (use arrow keys)";
+  public items: ConsolePro.MenuOption[] = [];
+  public is_open = true;
+  private isRaw = process.stdin.isRaw;
+  private active = true;
+  private moved = false;
+  private selected = 0;
+  private parent?: TerminalMenu;
+  private key_map = new Map<string, number>();
+  private _resolve!: (value: ConsolePro.MenuOption) => void;
+  public selected_option = new Promise<ConsolePro.MenuOption>(cb => {
+    this._resolve = cb;
+  });
+  public level = 1;
+  public selected_value = this.selected_option.then(options => {
+    this.active = false;
+    if (this.level === 1) {
+      this.draw();
+    }
+    return options.value;
+  });
+  addOption(name: string, value: any, key?: string | number) {
+    if (!this.active) return this;
+    const item: ConsolePro.MenuOption = {
+      name,
+      value,
+      key
+    };
+    if (value instanceof TerminalMenu) {
+      // 子菜单默认关闭
+      value.is_open = false;
+      value.selected_option.then(v => {
+        console.log("child selected", v, this.title);
+        this._resolve(v);
+      });
+      value.level = this.level + 1;
+      value.parent = this;
     }
     if (item.key === undefined) {
-      const default_key = items.length + 1 + "";
-      if (!key_map.has(default_key)) {
-        key_map.set(default_key, items.length);
+      const default_key = this.items.length + 1 + "";
+      if (!this.key_map.has(default_key)) {
+        this.key_map.set(default_key, this.items.length);
       }
     } else {
-      key_map.set(item.key.toString()[0], items.length);
+      this.key_map.set(item.key.toString()[0], this.items.length);
     }
-    items.push(item);
-    draw();
+    this.items.push(item);
+    this.draw();
+    return this;
   }
 
-  function onkeypress(ch: any, key: any) {
+  private onkeypress(ch: any, key: any) {
     if (key) {
       if (key.ctrl && key.name === "c") process.exit(130);
 
       if (key.name === "up") {
-        if (selected === 0) return;
-        selected--;
-        moved = true;
-        return draw();
+        if (this.selected === 0) return;
+        this.selected--;
+        this.moved = true;
+        return this.draw();
       } else if (key.name === "down") {
-        if (selected >= items.length - 1) return;
-        selected++;
-        moved = true;
-        return draw();
-      } else if (items.length > 0 && key.name === "return") {
-        return select();
+        if (this.selected >= this.items.length - 1) return;
+        this.selected++;
+        this.moved = true;
+        return this.draw();
+      } else if (key.name === "right") {
+        if (
+          this.items[this.selected] &&
+          this.items[this.selected].value instanceof TerminalMenu
+        ) {
+          return this.select();
+        }
+      } else if (key.name === "left" || key.name === "escape") {
+        if (this.parent && this.is_open) {
+          this.is_open = false;
+          this.stopSelect();
+          return this.parent.startSelect();
+        }
+      } else if (this.items.length > 0 && key.name === "return") {
+        return this.select();
       }
     }
     if (ch) {
-      const index = key_map.get(ch);
+      const index = this.key_map.get(ch);
       if (index !== undefined) {
-        selected = index;
-        draw();
+        this.selected = index;
+        this.draw();
       }
     }
   }
-
-  function select() {
-    active = false;
-    draw();
-    process.stdin.pause();
-    if (!isRaw) process.stdin.setRawMode && process.stdin.setRawMode(false);
-    process.stdin.removeListener("keypress", onkeypress);
-    cb(items[selected]);
+  startSelect() {
+    process.stdin.on("keypress", this.onkeypress);
+    if (!this.isRaw) process.stdin.setRawMode && process.stdin.setRawMode(true);
+    process.stdin.resume();
+    this.draw();
   }
-
-  function draw() {
-    var status = "";
-    var q = colors.green("? ") + colors.bold(title);
-    if (active) {
-      if (items.length === 0) status = waiting_msg;
-      else if (!moved) status = useArrowKeys_msg;
-
-      log(
-        items.reduce(function(s, item, index) {
-          const key_str =
-            item.key !== undefined ? colors.blue(`[${item.key}] `) : "";
-          return (
-            s +
-            (index === selected
-              ? colors.cyan("> " + key_str + item.name)
-              : "  " + key_str + item.name) +
-            "\n"
-          );
-        }, q + status + "\n")
-      );
+  stopSelect() {
+    process.stdin.pause();
+    if (!this.isRaw)
+      process.stdin.setRawMode && process.stdin.setRawMode(false);
+    process.stdin.removeListener("keypress", this.onkeypress);
+  }
+  select() {
+    this.stopSelect();
+    const selected_option = this.items[this.selected];
+    if (selected_option && selected_option.value instanceof TerminalMenu) {
+      selected_option.value.is_open = true;
+      selected_option.value.startSelect();
     } else {
-      log(q + " " + colors.cyan(items[selected].name) + "\n");
+      console.log("self select", selected_option);
+      this._resolve(selected_option);
     }
   }
 
-  return {
-    add,
-    items
-  };
-}
+  private _draw(): string {
+    if (!this.is_open) {
+      return "";
+    }
+    var status = "";
+    var q = this.title ? colors.green("? ") + colors.bold(this.title) : "";
+    if (this.active) {
+      if (this.items.length === 0) status = this.waiting_msg;
+      else if (!this.moved) status = this.useArrowKeys_msg;
 
-export class TerminalMenu {
-  constructor(
-    public title: string,
-    public opts: ConsolePro.MenuConfig,
-    public logger: Console["log"]
-  ) {
-    this.selected_value = this.selected_options.then(options => options.value);
-    this.add = this.addOption;
+      return this.items.reduce(
+        (s, item, index) => {
+          const key_str =
+            item.key !== undefined
+              ? colors.cyan(colors.bold(`[${item.key}]`)) + " "
+              : "";
+          const first_key =
+            item.value instanceof TerminalMenu
+              ? "+"
+              : index === this.selected
+              ? ">"
+              : " ";
+          const line_left = first_key + " ";
+          const left_space = "  ".repeat(this.level - 1);
+          const line = left_space + key_str + item.name;
+          const res =
+            s +
+            (index === this.selected
+              ? colors.cyan(line_left + line)
+              : line_left + line) +
+            "\n";
+          return (
+            res + (item.value instanceof TerminalMenu ? item.value._draw() : "")
+          );
+        },
+        q ? q + status + "\n" : ""
+      );
+    } else {
+      return q
+        ? q + " " + colors.cyan(this.items[this.selected].name) + "\n"
+        : "";
+    }
   }
-  private menu!: ReturnType<typeof menu>;
-  selected_options = new Promise<ConsolePro.MenuOption>(cb => {
-    this.menu = menu(
-      this.title,
-      selected_options => {
-        cb(selected_options);
-      },
-      this.logger,
-      this.opts
-    );
-  });
-  selected_value = this.selected_options.then(options => options.value);
-  addOption(name: string, value: any, key?: string | number) {
-    this.menu.add({
-      name,
-      value,
-      key
-    });
+  private draw() {
+    if (this.parent) {
+      if (this.is_open) {
+        this.parent.draw();
+      }
+    } else {
+      this.log(this._draw());
+    }
   }
-  add = this.addOption;
 }

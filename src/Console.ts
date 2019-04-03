@@ -104,7 +104,7 @@ export class ConsoleStd {
   write(buffer: Buffer | Uint8Array | string, encoding?: any, cb?: any) {
     if (this.new_line_at_start) {
       this.new_line_at_start = false;
-    //   this.baseWrite("\n");
+      //   this.baseWrite("\n");
     }
     return this.baseWrite(buffer, encoding, cb);
   }
@@ -673,18 +673,35 @@ export class ConsolePro extends ConsoleBase {
   // clear() {
   //   singleLineLog.clear();
   // }
-  menu(title: string, opts?: ConsolePro.MenuConfig) {
-    return new TerminalMenu(
-      title,
-      Object.assign(
-        {
-          waiting_msg: " （请稍后……）",
-          useArrowKeys_msg: " （使用方向键进行选择）"
-        },
-        opts
-      ),
-      this.line.bind(this)
+  menu(title: string, childs?: any[][], _opts?: ConsolePro.MenuConfig) {
+    const line_logger = this.line.bind(this);
+    const opts = Object.assign(
+      {
+        waiting_msg: " （请稍后……）",
+        useArrowKeys_msg: " （使用方向键进行选择）",
+        isChild: true
+      },
+      _opts
     );
+    const res = new TerminalMenu(title, opts, line_logger);
+    const generate_childs = (menu: TerminalMenu, childs: any[][]) => {
+      childs.forEach(([name, value, key]) => {
+        if (value instanceof Array && value[0] instanceof Array) {
+          const child_menu = new TerminalMenu(
+            "",
+            { ...opts, isChild: true },
+            line_logger
+          );
+          child_menu.level = menu.level + 1;
+          generate_childs(child_menu, value);
+          value = child_menu;
+        }
+        menu.addOption(name, value, key);
+      });
+    };
+    childs && generate_childs(res, childs);
+    res.startSelect();
+    return res;
   }
   getLine(question: string, filter?: (answer: string) => boolean) {
     return new Promise<string>(cb => {

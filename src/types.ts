@@ -18,6 +18,7 @@ declare namespace ConsolePro {
     stderr?: NodeJS.WriteStream;
   };
   export type MenuConfig = {
+    isChild?: boolean;
     waiting_msg?: string;
     useArrowKeys_msg?: string;
   };

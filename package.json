@@ -1,6 +1,6 @@
 {
   "name": "console-pro",
-  "version": "3.0.0",
+  "version": "3.1.1",
   "description": "Better console for support console.group",
   "main": "dist/index.js",
   "type": "dist/index.d.ts",
@@ -27,13 +27,12 @@
   },
   "homepage": "https://github.com/Gaubee/console-pro#readme",
   "dependencies": {
-    "@types/colors": "^1.2.1",
-    "@types/node": "^11.12.2",
     "colors": "^1.1.2",
-    "keypress": "^0.2.1",
-    "single-line-log": "^1.1.2"
+    "keypress": "^0.2.1"
   },
   "devDependencies": {
+    "@types/colors": "^1.2.1",
+    "@types/node": "^11.12.2",
     "ts-node": "^8.0.3",
     "typescript": "^3.4.1"
   }
