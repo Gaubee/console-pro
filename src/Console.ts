@@ -703,36 +703,36 @@ export class ConsolePro extends ConsoleBase {
     res.startSelect();
     return res;
   }
-  getLine(question: string, filter?: (answer: string) => boolean) {
+  getLine(
+    question: string,
+    opts?: { default?: string; filter?: (answer: string) => boolean }
+  ) {
+    const filter = opts && opts.filter;
+    const defaultVal = opts && opts.default;
     return new Promise<string>(cb => {
       var rl = readline.createInterface({
         input: process.stdin,
         output: this.stdout
       });
       process.stdin.setRawMode && process.stdin.setRawMode(false);
-      rl.question(question, answer => {
+      let print_line = question;
+      if (defaultVal !== undefined) {
+        print_line += " " + colors.grey(`(${defaultVal})`);
+      }
+      rl.question(print_line, answer => {
         if (filter instanceof Function) {
           if (!filter(answer)) {
-            return cb(this.getLine(question, filter));
+            return cb(this.getLine(question, opts));
           }
+        }
+        if (!answer && defaultVal !== undefined) {
+          answer = defaultVal;
         }
         cb(answer);
         rl.close();
       });
     });
   }
-  getTrimLine(
-    question: string,
-    filter?: (answer: string) => boolean
-  ): Promise<string> {
-    var line;
-    return this.getLine(question, filter).then(_line => {
-      line = _line.trim();
-      if (!line) {
-        return this.getTrimLine(question, filter);
-      }
-      return line;
-    });
-  }
+
   static COLOR = COLOR_ENUM;
 }
