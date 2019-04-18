@@ -16,6 +16,7 @@ declare namespace ConsolePro {
     namespace?: string;
     stdout?: NodeJS.WriteStream;
     stderr?: NodeJS.WriteStream;
+    stdin?: NodeJS.ReadStream;
   };
   export type MenuConfig = {
     isChild?: boolean;

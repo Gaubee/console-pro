@@ -12,9 +12,9 @@ const hrtime_format_2_ms = (hrtime: number[]) => {
   // const NS_PER_SEC = 1e9;
   return hrtime[0] * 1e3 + hrtime[1] / 1e6;
 };
-const MOVE_LEFT = Buffer.from("1b5b3130303044", "hex").toString();
-const MOVE_UP = Buffer.from("1b5b3141", "hex").toString();
-const CLEAR_LINE = Buffer.from("1b5b304b", "hex").toString();
+const MOVE_LEFT = "\x1b[1000D"; //Buffer.from("1b5b3130303044", "hex").toString();
+const MOVE_UP = "\x1b[1A"; // Buffer.from("1b5b3141", "hex").toString();
+const CLEAR_LINE = "\x1b[0K"; //Buffer.from("1b5b304b", "hex").toString();
 // const singleLineLog = require("single-line-log").stdout;
 // const menu = require("./menu");
 const {
@@ -31,6 +31,8 @@ import { replaceAll } from "./replaceAll";
 import { dateFormat } from "./dateFormat";
 import { TerminalMenu } from "./menu";
 import { timingSafeEqual } from "crypto";
+import { ConsoleStdOut } from "./lib/ConsoleStd";
+import { fackConsole, fackWriter } from "./lib/facker";
 const {
   infoSymbol,
   successSymbol,
@@ -41,106 +43,21 @@ const coloredInfoSymbol = colors.underline(colors.blue(infoSymbol));
 const coloredSuccessSymbol = colors.underline(colors.green(successSymbol));
 const coloredWarnSymbol = colors.underline(colors.yellow(warnSymbol));
 const coloredErrorSymbol = colors.underline(colors.red(errorSymbol));
-const noop = () => {};
 
 const TIMEEND_FIRST_ARGUMENT_TYPE_ERROR =
   ".timeEnd's first arguments must a Symbol from .time";
 const GROUPEND_FIRST_ARGUMENT_TYPE_ERROR =
   ".groupEnd's first arguments must a Symbol from .group";
 
-export class ConsoleStd {
-  constructor(private outter: NodeJS.WriteStream) {}
-  addListener = this.outter.addListener.bind(this.outter);
-  on = this.outter.on.bind(this.outter);
-  once = this.outter.once.bind(this.outter);
-  removeListener = this.outter.removeListener.bind(this.outter);
-  off = this.outter.off.bind(this.outter);
-  removeAllListeners = this.outter.removeAllListeners.bind(this.outter);
-  setMaxListeners = this.outter.setMaxListeners.bind(this.outter);
-  getMaxListeners = this.outter.getMaxListeners.bind(this.outter);
-  listeners = this.outter.listeners.bind(this.outter);
-  rawListeners = this.outter.rawListeners.bind(this.outter);
-  emit = this.outter.emit.bind(this.outter);
-  listenerCount = this.outter.listenerCount.bind(this.outter);
-  prependListener = this.outter.prependListener.bind(this.outter);
-  prependOnceListener = this.outter.prependOnceListener.bind(this.outter);
-  eventNames = this.outter.eventNames.bind(this.outter);
-
-  /**是否在开头的地方加入新的一行 */
-  new_line_at_start = false;
-  writable = true;
-  beforeBuffer?: Buffer;
-
-  baseWrite(buffer: Buffer | Uint8Array | string, encoding?: any, cb?: any) {
-    if (typeof buffer === "string") {
-      buffer = Buffer.from(buffer, encoding);
-    } else {
-      cb = encoding;
-    }
-    const { beforeBuffer } = this;
-    if (beforeBuffer) {
-      const bufferLines: Uint8Array[] = [];
-      do {
-        const after_index: number = buffer.indexOf(0x0a) + 1;
-        if (after_index === 0 || after_index === buffer.length) {
-          bufferLines.push(buffer);
-          break;
-        }
-        bufferLines.push(buffer.slice(0, after_index));
-        buffer = buffer.slice(after_index);
-      } while (true);
-
-      buffer = Buffer.concat(
-        bufferLines.map(bufline => {
-          const buf = Buffer.allocUnsafe(beforeBuffer.length + bufline.length);
-          buf.set(beforeBuffer, 0);
-          buf.set(bufline, beforeBuffer.length);
-          return buf;
-        })
-      );
-    }
-    return this.outter.write(buffer, cb);
-  }
-  write(buffer: Buffer | Uint8Array | string, encoding?: any, cb?: any) {
-    if (this.new_line_at_start) {
-      this.new_line_at_start = false;
-      //   this.baseWrite("\n");
-    }
-    return this.baseWrite(buffer, encoding, cb);
-  }
-  end(str?: any, encoding?: any, cb?: any) {
-    if (typeof str !== "function") {
-      this.write(str, encoding, cb);
-    } else {
-      if (typeof encoding === "function") {
-        cb = encoding;
-      }
-      this.outter.end(cb);
-    }
-  }
-}
 class HrtDate extends Date {
   __hrt = process.hrtime();
 }
-const fackWriter = new class FackWriter {
-  cachedBuffers = [] as Uint8Array[];
-  write(buffer: Buffer | Uint8Array | string, encoding?: any) {
-    if (typeof buffer === "string") {
-      buffer = Buffer.from(buffer, encoding);
-    }
-    this.cachedBuffers.push(buffer);
-  }
-  addListener = noop;
-  on = noop;
-  once = noop;
-  removeListener = noop;
-  off = noop;
-  removeAllListeners = noop;
-}();
-const fackConsole = new NativeConsole(fackWriter as any, fackWriter as any);
+
 class ConsoleBase {
-  stdout: ConsoleStd;
-  stderr: ConsoleStd;
+  stdout: ConsoleStdOut;
+  stderr: ConsoleStdOut;
+  stdin: NodeJS.ReadStream;
+  // stdin:ConsoleStd
   protected _console: Console;
   log: Console["log"];
   protected _warn: Console["warn"];
@@ -162,31 +79,33 @@ class ConsoleBase {
   protected _error: Console["error"];
   groupCollapsed: Console["groupCollapsed"];
   constructor(config: {
-    stdout?: NodeJS.WriteStream | undefined;
-    stderr?: NodeJS.WriteStream | undefined;
+    stdout?: NodeJS.WriteStream;
+    stderr?: NodeJS.WriteStream;
+    stdin?: NodeJS.ReadStream;
   }) {
-    this.stdout = new ConsoleStd(config.stdout || process.stdout);
-    this.stderr = new ConsoleStd(config.stderr || process.stderr);
+    this.stdout = new ConsoleStdOut(config.stdout || process.stdout);
+    this.stderr = new ConsoleStdOut(config.stderr || process.stderr);
+    this.stdin = config.stdin || process.stdin;
     const con = (this._console = new NativeConsole(this.stdout, this.stderr));
-    this.log = con.log;
-    this._warn = con.warn;
-    this.dir = con.dir;
-    this.time = con.time;
-    this.timeEnd = con.timeEnd;
-    this.timeLog = con.timeLog;
-    this.trace = con.trace;
-    this.assert = con.assert;
-    this.clear = con.clear;
-    this.count = con.count;
-    this.countReset = con.countReset;
-    this.group = con.group;
-    this.groupEnd = con.groupEnd;
-    this.table = con.table;
-    this._debug = con.debug;
-    this._info = con.info;
-    this.dirxml = con.dirxml;
-    this._error = con.error;
-    this.groupCollapsed = con.groupCollapsed;
+    this.log = con.log.bind(con);
+    this._warn = con.warn.bind(con);
+    this.dir = con.dir.bind(con);
+    this.time = con.time.bind(con);
+    this.timeEnd = con.timeEnd.bind(con);
+    this.timeLog = con.timeLog.bind(con);
+    this.trace = con.trace.bind(con);
+    this.assert = con.assert.bind(con);
+    this.clear = con.clear.bind(con);
+    this.count = con.count.bind(con);
+    this.countReset = con.countReset.bind(con);
+    this.group = con.group.bind(con);
+    this.groupEnd = con.groupEnd.bind(con);
+    this.table = con.table.bind(con);
+    this._debug = con.debug.bind(con);
+    this._info = con.info.bind(con);
+    this.dirxml = con.dirxml.bind(con);
+    this._error = con.error.bind(con);
+    this.groupCollapsed = con.groupCollapsed.bind(con);
   }
 }
 
@@ -207,19 +126,34 @@ export class ConsolePro extends ConsoleBase {
     if (config.namespace) {
       this.namespace = config.namespace;
     }
+
+    this.info = this.info.bind(this);
+    this.success = this.success.bind(this);
+    this.debug = this.debug.bind(this);
+    this.warn = this.warn.bind(this);
+    this.error = this.error.bind(this);
+    this.ltime = this.ltime.bind(this);
+    this.ltimeEnd = this.ltimeEnd.bind(this);
+    this.lgroup = this.lgroup.bind(this);
+    this.lgroupEnd = this.lgroupEnd.bind(this);
+    this.flag = this.flag.bind(this);
+    this.flagHead = this.flagHead.bind(this);
+    this.line = this.line.bind(this);
+    this.menu = this.menu.bind(this);
+    this.getLine = this.getLine.bind(this);
   }
 
-  _log_bak = this.log;
-  _info_bak = this.info;
-  _debug_bak = this.debug;
-  _success_bak = this.success;
-  _warn_bak = this.warn;
-  _error_bak = this.error;
-  _dir_bak = this.dir;
-  _group_bak = this.group;
-  _groupEnd_bak = this.groupEnd;
-  _time_bak = this.time;
-  _timeEnd_bak = this.timeEnd;
+  private _log_bak = this.log;
+  private _info_bak = this.info;
+  private _debug_bak = this.debug;
+  private _success_bak = this.success;
+  private _warn_bak = this.warn;
+  private _error_bak = this.error;
+  private _dir_bak = this.dir;
+  private _group_bak = this.group;
+  private _groupEnd_bak = this.groupEnd;
+  private _time_bak = this.time;
+  private _timeEnd_bak = this.timeEnd;
   current_is_silence = false;
 
   silence(to_silence?: boolean) {
@@ -673,8 +607,12 @@ export class ConsolePro extends ConsoleBase {
   // clear() {
   //   singleLineLog.clear();
   // }
-  menu(title: string, childs?: any[][], _opts?: ConsolePro.MenuConfig) {
-    const line_logger = this.line.bind(this);
+  menu(
+    title: string,
+    childs?: any[][],
+    _opts?: ConsolePro.MenuConfig,
+    line_logger: Console["log"] = this.line.bind(this)
+  ) {
     const opts = Object.assign(
       {
         waiting_msg: " （请稍后……）",
@@ -683,14 +621,15 @@ export class ConsolePro extends ConsoleBase {
       },
       _opts
     );
-    const res = new TerminalMenu(title, opts, line_logger);
+    const res = new TerminalMenu(title, opts, line_logger, this.stdin);
     const generate_childs = (menu: TerminalMenu, childs: any[][]) => {
       childs.forEach(([name, value, key]) => {
         if (value instanceof Array && value[0] instanceof Array) {
           const child_menu = new TerminalMenu(
             "",
             { ...opts, isChild: true },
-            line_logger
+            line_logger,
+            this.stdin
           );
           child_menu.level = menu.level + 1;
           generate_childs(child_menu, value);
@@ -711,10 +650,10 @@ export class ConsolePro extends ConsoleBase {
     const defaultVal = opts && opts.default;
     return new Promise<string>(cb => {
       var rl = readline.createInterface({
-        input: process.stdin,
+        input: this.stdin,
         output: this.stdout
       });
-      process.stdin.setRawMode && process.stdin.setRawMode(false);
+      this.stdin.setRawMode && this.stdin.setRawMode(false);
       let print_line = question;
       if (defaultVal !== undefined) {
         print_line += " " + colors.grey(`(${defaultVal})`);

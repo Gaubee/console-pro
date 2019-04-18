@@ -3,7 +3,7 @@
 const keypress = require("keypress");
 const colors = require("colors");
 const MENU_SYMBOL = Symbol("menu");
-keypress(process.stdin);
+const BINDED_KEYPRESS_STDIN_SET = new WeakSet<NodeJS.ReadStream>();
 
 export class TerminalMenu {
   [MENU_SYMBOL] = true;
@@ -11,8 +11,13 @@ export class TerminalMenu {
   constructor(
     public title: string,
     public opts: ConsolePro.MenuConfig,
-    public log: Console["log"]
+    public log: Console["log"],
+    public stdin = process.stdin
   ) {
+    if (!BINDED_KEYPRESS_STDIN_SET.has(stdin)) {
+      BINDED_KEYPRESS_STDIN_SET.add(stdin);
+      keypress(stdin);
+    }
     opts.waiting_msg && (this.waiting_msg = opts.waiting_msg);
     opts.useArrowKeys_msg && (this.useArrowKeys_msg = opts.useArrowKeys_msg);
     this.onkeypress = this.onkeypress.bind(this);
@@ -24,7 +29,7 @@ export class TerminalMenu {
   private useArrowKeys_msg = " (use arrow keys)";
   public items: ConsolePro.MenuOption[] = [];
   public is_open = true;
-  private isRaw = process.stdin.isRaw;
+  private isRaw = this.stdin.isRaw;
   private active = true;
   private moved = false;
   private selected = 0;
@@ -74,7 +79,14 @@ export class TerminalMenu {
 
   private onkeypress(ch: any, key: any) {
     if (key) {
-      if (key.ctrl && key.name === "c") process.exit(130);
+      if (key.ctrl && key.name === "c") {
+        if (this.stdin === process.stdin) {
+          process.exit(130);
+        } else {
+          this.stdin.emit("exit", 130);
+        }
+        return;
+      }
 
       if (key.name === "up") {
         if (this.selected === 0) return;
@@ -112,16 +124,16 @@ export class TerminalMenu {
     }
   }
   startSelect() {
-    process.stdin.on("keypress", this.onkeypress);
-    if (!this.isRaw) process.stdin.setRawMode && process.stdin.setRawMode(true);
-    process.stdin.resume();
+    this.stdin.on("keypress", this.onkeypress);
+    if (!this.isRaw) this.stdin.setRawMode && this.stdin.setRawMode(true);
+    this.stdin.resume();
     this.draw();
   }
   stopSelect() {
-    process.stdin.pause();
+    this.stdin.pause();
     if (!this.isRaw)
-      process.stdin.setRawMode && process.stdin.setRawMode(false);
-    process.stdin.removeListener("keypress", this.onkeypress);
+      this.stdin.setRawMode && this.stdin.setRawMode(false);
+    this.stdin.removeListener("keypress", this.onkeypress);
   }
   select() {
     this.stopSelect();

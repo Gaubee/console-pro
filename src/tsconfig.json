@@ -4,6 +4,8 @@
         "outDir": "../dist"
     },
     "files": [
+        "./lib/ConsoleStd.ts",
+        "./lib/facker.ts",
         "./index.ts",
         "./types.ts",
         "./Console.ts",
