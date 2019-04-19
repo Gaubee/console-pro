@@ -1,7 +1,48 @@
-export const colors = require("colors");
+import chalk from "chalk";
+// export const chalk = require("chalk");
 export const color_flag_reg = /((\u001b\[\d+m)+)([\s\S]+?)((\u001b\[\d+m)+)/; //不以^开头，前面可能有空格
 
-const COLOR_STYLES = Object.assign({}, colors.styles);
+const COLOR_STYLES: {
+  [key: string]: {
+    open: string;
+    close: string;
+  };
+} = {
+  reset: { open: "\u001b[0m", close: "\u001b[0m" },
+  bold: { open: "\u001b[1m", close: "\u001b[22m" },
+  dim: { open: "\u001b[2m", close: "\u001b[22m" },
+  italic: { open: "\u001b[3m", close: "\u001b[23m" },
+  underline: { open: "\u001b[4m", close: "\u001b[24m" },
+  inverse: { open: "\u001b[7m", close: "\u001b[27m" },
+  hidden: { open: "\u001b[8m", close: "\u001b[28m" },
+  strikethrough: { open: "\u001b[9m", close: "\u001b[29m" },
+  black: { open: "\u001b[30m", close: "\u001b[39m" },
+  red: { open: "\u001b[31m", close: "\u001b[39m" },
+  green: { open: "\u001b[32m", close: "\u001b[39m" },
+  yellow: { open: "\u001b[33m", close: "\u001b[39m" },
+  blue: { open: "\u001b[34m", close: "\u001b[39m" },
+  magenta: { open: "\u001b[35m", close: "\u001b[39m" },
+  cyan: { open: "\u001b[36m", close: "\u001b[39m" },
+  white: { open: "\u001b[37m", close: "\u001b[39m" },
+  gray: { open: "\u001b[90m", close: "\u001b[39m" },
+  grey: { open: "\u001b[90m", close: "\u001b[39m" },
+  bgBlack: { open: "\u001b[40m", close: "\u001b[49m" },
+  bgRed: { open: "\u001b[41m", close: "\u001b[49m" },
+  bgGreen: { open: "\u001b[42m", close: "\u001b[49m" },
+  bgYellow: { open: "\u001b[43m", close: "\u001b[49m" },
+  bgBlue: { open: "\u001b[44m", close: "\u001b[49m" },
+  bgMagenta: { open: "\u001b[45m", close: "\u001b[49m" },
+  bgCyan: { open: "\u001b[46m", close: "\u001b[49m" },
+  bgWhite: { open: "\u001b[47m", close: "\u001b[49m" },
+  blackBG: { open: "\u001b[40m", close: "\u001b[49m" },
+  redBG: { open: "\u001b[41m", close: "\u001b[49m" },
+  greenBG: { open: "\u001b[42m", close: "\u001b[49m" },
+  yellowBG: { open: "\u001b[43m", close: "\u001b[49m" },
+  blueBG: { open: "\u001b[44m", close: "\u001b[49m" },
+  magentaBG: { open: "\u001b[45m", close: "\u001b[49m" },
+  cyanBG: { open: "\u001b[46m", close: "\u001b[49m" },
+  whiteBG: { open: "\u001b[47m", close: "\u001b[49m" }
+};
 const TEXT_COLOR_WITHOUT_BG = (exports.TEXT_COLOR_WITHOUT_BG = [
   "yellow",
   "blue",
@@ -160,16 +201,16 @@ const text_colors = [
 // Color Symbol
 export const COLOR_ENUM: { [key: string]: symbol } = {};
 export const COLOR_MAP = new Map();
-Object.keys(colors.styles).filter(key => {
+Object.keys(COLOR_STYLES).filter(key => {
   const sym = (COLOR_ENUM[key] = Symbol(key));
-  const colorStyle = colors.styles[key];
+  const colorStyle = COLOR_STYLES[key];
   COLOR_MAP.set(sym, colorStyle);
   if (key.startsWith("bg") || key.endsWith("BG")) {
     text_colors.forEach(textKeys => {
       const [textKey, subKey] = textKeys;
       const bgKeyWithText = key + "With" + subKey;
       var sym = (COLOR_ENUM[bgKeyWithText] = Symbol(bgKeyWithText));
-      const textColorStyle = colors.styles[textKey];
+      const textColorStyle = COLOR_STYLES[textKey];
       COLOR_MAP.set(sym, {
         open: colorStyle.open + textColorStyle.open,
         close: colorStyle.close + textColorStyle.close
