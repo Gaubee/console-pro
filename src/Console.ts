@@ -84,7 +84,9 @@ class ConsoleBase {
     stdin?: NodeJS.ReadStream;
   }) {
     this.stdout = new ConsoleStdOut(config.stdout || process.stdout);
-    this.stderr = new ConsoleStdOut(config.stderr || process.stderr);
+    this.stderr = new ConsoleStdOut(
+      config.stderr || config.stdout || process.stderr
+    );
     this.stdin = config.stdin || process.stdin;
     const con = (this._console = new NativeConsole(this.stdout, this.stderr));
     this.log = con.log.bind(con);
@@ -607,12 +609,7 @@ export class ConsolePro extends ConsoleBase {
   // clear() {
   //   singleLineLog.clear();
   // }
-  menu(
-    title: string,
-    childs?: any[][],
-    _opts?: ConsolePro.MenuConfig,
-    line_logger: Console["log"] = this.line.bind(this)
-  ) {
+  menu(title: string, childs?: any[][], _opts?: ConsolePro.MenuConfig) {
     const opts = Object.assign(
       {
         waiting_msg: " （请稍后……）",
@@ -621,15 +618,14 @@ export class ConsolePro extends ConsoleBase {
       },
       _opts
     );
-    const res = new TerminalMenu(title, opts, line_logger, this.stdin);
+    const res = new TerminalMenu(title, opts, this);
     const generate_childs = (menu: TerminalMenu, childs: any[][]) => {
       childs.forEach(([name, value, key]) => {
         if (value instanceof Array && value[0] instanceof Array) {
           const child_menu = new TerminalMenu(
             "",
             { ...opts, isChild: true },
-            line_logger,
-            this.stdin
+            this
           );
           child_menu.level = menu.level + 1;
           generate_childs(child_menu, value);
@@ -651,10 +647,13 @@ export class ConsolePro extends ConsoleBase {
     return new Promise<string>(cb => {
       var rl = readline.createInterface({
         input: this.stdin,
-        output: this.stdout
+        output: this.stdout.outter
       });
-      this.stdin.setRawMode && this.stdin.setRawMode(false);
-      let print_line = question;
+      const prompt = this.stdout.beforeBuffer
+        ? this.stdout.beforeBuffer.toString()
+        : "";
+      // this.stdin.setRawMode && this.stdin.setRawMode(false);
+      let print_line = prompt + question;
       if (defaultVal !== undefined) {
         print_line += " " + colors.grey(`(${defaultVal})`);
       }

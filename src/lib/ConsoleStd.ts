@@ -1,6 +1,6 @@
 const MOVE_LEFT_BUFFER = new Uint8Array(Buffer.from("1b5b3130303044", "hex"));
 export class ConsoleStdOut {
-  constructor(private outter: NodeJS.WriteStream) {}
+  constructor(public outter: NodeJS.WriteStream | import("tty").WriteStream) {}
   addListener = this.outter.addListener.bind(this.outter);
   on = this.outter.on.bind(this.outter);
   once = this.outter.once.bind(this.outter);
@@ -16,6 +16,44 @@ export class ConsoleStdOut {
   prependListener = this.outter.prependListener.bind(this.outter);
   prependOnceListener = this.outter.prependOnceListener.bind(this.outter);
   eventNames = this.outter.eventNames.bind(this.outter);
+
+  //#region TTY
+
+  get columns() {
+    return this.outter.columns;
+  }
+  get rows() {
+    return this.outter.rows;
+  }
+  get isTTY() {
+    return this.outter.isTTY;
+  }
+  get getColorDepth() {
+    return "getColorDepth" in this.outter
+      ? this.outter.getColorDepth.bind(this.outter)
+      : undefined;
+  }
+  get hasColors() {
+    return "hasColors" in this.outter
+      ? (this.outter as any)["hasColors"].bind(this.outter)
+      : undefined;
+  }
+  get clearLine() {
+    return "clearLine" in this.outter
+      ? this.outter.clearLine.bind(this.outter)
+      : undefined;
+  }
+  get clearScreenDown() {
+    return "clearScreenDown" in this.outter
+      ? this.outter.clearScreenDown.bind(this.outter)
+      : undefined;
+  }
+  get cursorTo() {
+    return "cursorTo" in this.outter
+      ? this.outter.cursorTo.bind(this.outter)
+      : undefined;
+  }
+  //#endregion
 
   /**是否在开头的地方加入新的一行 */
   new_line_at_start = false;

@@ -1,9 +1,8 @@
 "use strict";
 
-const keypress = require("keypress");
-const colors = require("colors");
+const chalk = require("chalk");
 const MENU_SYMBOL = Symbol("menu");
-const BINDED_KEYPRESS_STDIN_SET = new WeakSet<NodeJS.ReadStream>();
+import * as readline from "readline";
 
 export class TerminalMenu {
   [MENU_SYMBOL] = true;
@@ -11,13 +10,8 @@ export class TerminalMenu {
   constructor(
     public title: string,
     public opts: ConsolePro.MenuConfig,
-    public log: Console["log"],
-    public stdin = process.stdin
+    public cpro: import("./Console").ConsolePro // public log: Console["log"], // public stdin = process.stdin
   ) {
-    if (!BINDED_KEYPRESS_STDIN_SET.has(stdin)) {
-      BINDED_KEYPRESS_STDIN_SET.add(stdin);
-      keypress(stdin);
-    }
     opts.waiting_msg && (this.waiting_msg = opts.waiting_msg);
     opts.useArrowKeys_msg && (this.useArrowKeys_msg = opts.useArrowKeys_msg);
     this.onkeypress = this.onkeypress.bind(this);
@@ -29,7 +23,7 @@ export class TerminalMenu {
   private useArrowKeys_msg = " (use arrow keys)";
   public items: ConsolePro.MenuOption[] = [];
   public is_open = true;
-  private isRaw = this.stdin.isRaw;
+  private isRaw = this.cpro.stdin.isRaw;
   private active = true;
   private moved = false;
   private selected = 0;
@@ -80,10 +74,10 @@ export class TerminalMenu {
   private onkeypress(ch: any, key: any) {
     if (key) {
       if (key.ctrl && key.name === "c") {
-        if (this.stdin === process.stdin) {
+        if (this.cpro.stdin === process.stdin) {
           process.exit(130);
         } else {
-          this.stdin.emit("exit", 130);
+          this.cpro.stdin.emit("exit", 130);
         }
         return;
       }
@@ -123,17 +117,42 @@ export class TerminalMenu {
       }
     }
   }
+  private rl?: readline.Interface;
   startSelect() {
-    this.stdin.on("keypress", this.onkeypress);
-    if (!this.isRaw) this.stdin.setRawMode && this.stdin.setRawMode(true);
-    this.stdin.resume();
+    if (this.rl) {
+      return;
+    }
+    this.rl = readline.createInterface({
+      input: this.cpro.stdin,
+      output: this.cpro.stdout.outter
+    });
+    if (!this.isRaw)
+      this.cpro.stdin.setRawMode && this.cpro.stdin.setRawMode(true);
+    // if (this.cpro.stdin.isPaused) {
+    //   this.cpro.stdin.once("resume", () => {
+    //     this.cpro.stdin.on("keypress", this.onkeypress);
+    //   });
+    // } else {
+    //   this.cpro.stdin.on("keypress", this.onkeypress);
+    // }
+    // this.cpro.stdin.on("keypress", this.onkeypress);
+
+    this.cpro.stdin.once("resume", () => {
+      this.cpro.stdin.on("keypress", this.onkeypress);
+    });
+    this.cpro.stdin.resume();
     this.draw();
   }
   stopSelect() {
-    this.stdin.pause();
+    if (!this.rl) {
+      return;
+    }
+    this.rl.close();
+    this.rl = undefined;
+    this.cpro.stdin.pause();
     if (!this.isRaw)
-      this.stdin.setRawMode && this.stdin.setRawMode(false);
-    this.stdin.removeListener("keypress", this.onkeypress);
+      this.cpro.stdin.setRawMode && this.cpro.stdin.setRawMode(false);
+    this.cpro.stdin.removeListener("keypress", this.onkeypress);
   }
   select() {
     this.stopSelect();
@@ -152,7 +171,7 @@ export class TerminalMenu {
       return "";
     }
     var status = "";
-    var q = this.title ? colors.green("? ") + colors.bold(this.title) : "";
+    var q = this.title ? chalk.green("? ") + chalk.bold(this.title) : "";
     if (this.active) {
       if (this.items.length === 0) status = this.waiting_msg;
       else if (!this.moved) status = this.useArrowKeys_msg;
@@ -161,7 +180,7 @@ export class TerminalMenu {
         (s, item, index) => {
           const key_str =
             item.key !== undefined
-              ? colors.cyan(colors.bold(`[${item.key}]`)) + " "
+              ? chalk.cyan(chalk.bold(`[${item.key}]`)) + " "
               : "";
           const first_key =
             item.value instanceof TerminalMenu
@@ -175,7 +194,7 @@ export class TerminalMenu {
           const res =
             s +
             (index === this.selected
-              ? colors.cyan(line_left + line)
+              ? chalk.cyan(line_left + line)
               : line_left + line) +
             "\n";
           return (
@@ -186,7 +205,7 @@ export class TerminalMenu {
       );
     } else {
       return q
-        ? q + " " + colors.cyan(this.items[this.selected].name) + "\n"
+        ? q + " " + chalk.cyan(this.items[this.selected].name) + "\n"
         : "";
     }
   }
@@ -196,7 +215,7 @@ export class TerminalMenu {
         this.parent.draw();
       }
     } else {
-      this.log(this._draw());
+      this.cpro.line(this._draw());
     }
   }
 }
