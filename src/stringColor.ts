@@ -1,4 +1,3 @@
-import chalk from "chalk";
 // export const chalk = require("chalk");
 export const color_flag_reg = /((\u001b\[\d+m)+)([\s\S]+?)((\u001b\[\d+m)+)/; //不以^开头，前面可能有空格
 
@@ -43,15 +42,15 @@ const COLOR_STYLES: {
   cyanBG: { open: "\u001b[46m", close: "\u001b[49m" },
   whiteBG: { open: "\u001b[47m", close: "\u001b[49m" }
 };
-const TEXT_COLOR_WITHOUT_BG = (exports.TEXT_COLOR_WITHOUT_BG = [
+export const TEXT_COLOR_WITHOUT_BG = [
   "yellow",
   "blue",
   "magenta",
   "cyan",
   "red",
   "green"
-]);
-const TEXT_COLOR_WITH_BG = (exports.TEXT_COLOR_WITH_BG = (() => {
+];
+export const TEXT_COLOR_WITH_BG = (() => {
   const bg_text_map = {
     bgBlack: [
       "yellow",
@@ -148,7 +147,7 @@ const TEXT_COLOR_WITH_BG = (exports.TEXT_COLOR_WITH_BG = (() => {
     });
   }
   return res;
-})());
+})();
 
 const TEXT_COLOR = TEXT_COLOR_WITHOUT_BG.concat(TEXT_COLOR_WITH_BG);
 // TEXT_COLOR.forEach(colorKey => {
@@ -161,7 +160,7 @@ const TEXT_COLOR = TEXT_COLOR_WITHOUT_BG.concat(TEXT_COLOR_WITH_BG);
 // });
 export function colorsHead(
   str: string,
-  to_color: string,
+  to_color?: string,
   colorList = TEXT_COLOR
 ) {
   return str.replace(/\[(.)+\]/, function(head) {

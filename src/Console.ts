@@ -17,16 +17,15 @@ const MOVE_UP = "\x1b[1A"; // Buffer.from("1b5b3141", "hex").toString();
 const CLEAR_LINE = "\x1b[0K"; //Buffer.from("1b5b304b", "hex").toString();
 // const singleLineLog = require("single-line-log").stdout;
 // const menu = require("./menu");
-const {
-  colors,
+import {
   color_flag_reg,
   colorsHead,
-  colorsHeadWithBG,
   COLOR_ENUM,
   COLOR_MAP,
   TEXT_COLOR_WITHOUT_BG,
   TEXT_COLOR_WITH_BG
-} = require("./stringColor");
+} from "./stringColor";
+import chalk from "chalk";
 import { replaceAll } from "./replaceAll";
 import { dateFormat } from "./dateFormat";
 import { TerminalMenu } from "./menu";
@@ -39,10 +38,10 @@ const {
   warnSymbol,
   errorSymbol
 } = require("./specialSymbol");
-const coloredInfoSymbol = colors.underline(colors.blue(infoSymbol));
-const coloredSuccessSymbol = colors.underline(colors.green(successSymbol));
-const coloredWarnSymbol = colors.underline(colors.yellow(warnSymbol));
-const coloredErrorSymbol = colors.underline(colors.red(errorSymbol));
+const coloredInfoSymbol = chalk.underline(chalk.blue(infoSymbol));
+const coloredSuccessSymbol = chalk.underline(chalk.green(successSymbol));
+const coloredWarnSymbol = chalk.underline(chalk.yellow(warnSymbol));
+const coloredErrorSymbol = chalk.underline(chalk.red(errorSymbol));
 
 const TIMEEND_FIRST_ARGUMENT_TYPE_ERROR =
   ".timeEnd's first arguments must a Symbol from .time";
@@ -567,7 +566,7 @@ export class ConsolePro extends ConsoleBase {
     if (typeof withBG === "boolean") {
       return colorsHead(
         "[" + flag + "]",
-        null,
+        undefined,
         withBG ? TEXT_COLOR_WITH_BG : TEXT_COLOR_WITHOUT_BG
       );
     } else {
@@ -655,7 +654,7 @@ export class ConsolePro extends ConsoleBase {
       // this.stdin.setRawMode && this.stdin.setRawMode(false);
       let print_line = prompt + question;
       if (defaultVal !== undefined) {
-        print_line += " " + colors.grey(`(${defaultVal})`);
+        print_line += " " + chalk.grey(`(${defaultVal})`);
       }
       rl.question(print_line, answer => {
         if (filter instanceof Function) {
