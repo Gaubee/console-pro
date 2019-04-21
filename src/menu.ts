@@ -18,6 +18,7 @@ export class TerminalMenu extends EventEmitter {
     if (!opts.isChild) {
       this.startSelect();
     }
+    cpro.emit("menu", this);
   }
   private waiting_msg = " (waiting...)";
   private useArrowKeys_msg = " (use arrow keys)";

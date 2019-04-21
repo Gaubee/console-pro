@@ -620,7 +620,6 @@ export class ConsolePro extends ConsoleBase {
       _opts
     );
     const root_menu = new TerminalMenu(title, opts, this);
-    this.emit("menu", root_menu);
     const generate_childs = (menu: TerminalMenu, childs: any[][]) => {
       childs.forEach(([name, value, key]) => {
         if (value instanceof Array && value[0] instanceof Array) {
