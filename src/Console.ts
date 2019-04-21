@@ -1,4 +1,5 @@
 /* @flow */
+import { EventEmitter } from "events";
 import { Console as NativeConsole } from "console";
 import * as util from "util";
 import * as readline from "readline";
@@ -48,7 +49,7 @@ class HrtDate extends Date {
   __hrt = process.hrtime();
 }
 
-class ConsoleBase {
+class ConsoleBase extends EventEmitter {
   stdout: ConsoleStdOut;
   stderr: ConsoleStdOut;
   stdin: NodeJS.ReadStream;
@@ -78,6 +79,7 @@ class ConsoleBase {
     stderr?: NodeJS.WriteStream;
     stdin?: NodeJS.ReadStream;
   }) {
+    super();
     this.stdout = new ConsoleStdOut(config.stdout || process.stdout);
     this.stderr = new ConsoleStdOut(
       config.stderr || config.stdout || process.stderr
@@ -617,7 +619,8 @@ export class ConsolePro extends ConsoleBase {
       },
       _opts
     );
-    const res = new TerminalMenu(title, opts, this);
+    const root_menu = new TerminalMenu(title, opts, this);
+    this.emit("menu", root_menu);
     const generate_childs = (menu: TerminalMenu, childs: any[][]) => {
       childs.forEach(([name, value, key]) => {
         if (value instanceof Array && value[0] instanceof Array) {
@@ -633,9 +636,9 @@ export class ConsolePro extends ConsoleBase {
         menu.addOption(name, value, key);
       });
     };
-    childs && generate_childs(res, childs);
-    res.startSelect();
-    return res;
+    childs && generate_childs(root_menu, childs);
+    root_menu.startSelect();
+    return root_menu;
   }
   getLine(
     question: string,

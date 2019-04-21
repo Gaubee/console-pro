@@ -1,10 +1,9 @@
-"use strict";
-
+import { EventEmitter } from "events";
 import chalk from "chalk";
 const MENU_SYMBOL = Symbol("menu");
 import * as readline from "readline";
 
-export class TerminalMenu {
+export class TerminalMenu extends EventEmitter {
   [MENU_SYMBOL] = true;
 
   constructor(
@@ -12,6 +11,7 @@ export class TerminalMenu {
     public opts: ConsolePro.MenuConfig,
     public cpro: import("./Console").ConsolePro // public log: Console["log"], // public stdin = process.stdin
   ) {
+    super();
     opts.waiting_msg && (this.waiting_msg = opts.waiting_msg);
     opts.useArrowKeys_msg && (this.useArrowKeys_msg = opts.useArrowKeys_msg);
     this.onkeypress = this.onkeypress.bind(this);
@@ -117,7 +117,7 @@ export class TerminalMenu {
       }
     }
   }
-  private rl?: readline.Interface;
+  rl?: readline.Interface;
   startSelect() {
     if (this.rl) {
       return;
@@ -134,6 +134,8 @@ export class TerminalMenu {
       this.cursor = 0;
       this.prevRows = 0;
     };
+
+    this.emit("readline", this.rl);
 
     if (!this.isRaw)
       this.cpro.stdin.setRawMode && this.cpro.stdin.setRawMode(true);
