@@ -26,10 +26,10 @@ import {
   TEXT_COLOR_WITH_BG
 } from "./stringColor";
 import chalk from "chalk";
+export { chalk };
 import { replaceAll } from "./replaceAll";
 import { dateFormat } from "./dateFormat";
 import { TerminalMenu } from "./menu";
-import { timingSafeEqual } from "crypto";
 import { ConsoleStdOut } from "./lib/ConsoleStd";
 import { fackConsole, fackWriter } from "./lib/facker";
 const {
@@ -38,10 +38,6 @@ const {
   warnSymbol,
   errorSymbol
 } = require("./specialSymbol");
-const coloredInfoSymbol = chalk.underline(chalk.blue(infoSymbol));
-const coloredSuccessSymbol = chalk.underline(chalk.green(successSymbol));
-const coloredWarnSymbol = chalk.underline(chalk.yellow(warnSymbol));
-const coloredErrorSymbol = chalk.underline(chalk.red(errorSymbol));
 
 const TIMEEND_FIRST_ARGUMENT_TYPE_ERROR =
   ".timeEnd's first arguments must a Symbol from .time";
@@ -295,20 +291,24 @@ export class ConsolePro extends ConsoleBase {
     return res;
   }
 
+  private _InfoSymbol = chalk.underline(chalk.blue(infoSymbol));
+  private _SuccessSymbol = chalk.underline(chalk.green(successSymbol));
+  private _WarnSymbol = chalk.underline(chalk.yellow(warnSymbol));
+  private _ErrorSymbol = chalk.underline(chalk.red(errorSymbol));
   info(...args: any[]) {
-    this._info(coloredInfoSymbol, ...args);
+    this._info(this._InfoSymbol, ...args);
   }
   success(...args: any[]) {
-    this._info(coloredSuccessSymbol, ...args);
+    this._info(this._SuccessSymbol, ...args);
   }
   debug(...args: any[]) {
     this._debug(...args);
   }
   warn(...args: any[]) {
-    this._warn(coloredWarnSymbol, ...args);
+    this._warn(this._WarnSymbol, ...args);
   }
   error(...args: any[]) {
-    this._error(coloredErrorSymbol, ...args);
+    this._error(this._ErrorSymbol, ...args);
   }
 
   ltime(...args: any[]) {

@@ -126,6 +126,15 @@ export class TerminalMenu {
       input: this.cpro.stdin,
       output: this.cpro.stdout.outter
     });
+    // 回车不会打印换行符
+    (this.rl as any).clearLine = function(this: any) {
+      this._moveCursor(+Infinity);
+      this._writeToOutput("\x1b[1000D\x1b[0K");
+      this.line = "";
+      this.cursor = 0;
+      this.prevRows = 0;
+    };
+
     if (!this.isRaw)
       this.cpro.stdin.setRawMode && this.cpro.stdin.setRawMode(true);
     // if (this.cpro.stdin.isPaused) {
