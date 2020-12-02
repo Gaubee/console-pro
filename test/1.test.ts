@@ -10,7 +10,7 @@ c.success("3");
 const t1 = c.ltime(c.flagHead("33"));
 const t2 = c.ltime("44");
 c.info("2");
-c.table({ a: "c", b: 2, c: true});
+c.table({ a: "c", b: 2, c: true });
 c.ltimeEnd(t1, "33xx");
 c.lgroupEnd(g2, "22xx");
 c.ltimeEnd(t2, "44xx");
@@ -23,3 +23,10 @@ const ti1 = setInterval(() => {
   }
   c.line(i++);
 }, 100);
+
+const a = {
+  qaq: 1,
+  aoa: "aa"
+};
+type A = typeof a;
+type B = Exclude<keyof A, "qaq">;

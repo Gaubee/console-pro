@@ -53,7 +53,7 @@ export class TerminalMenu extends EventEmitter {
       // 子菜单默认关闭
       value.is_open = false;
       value.selected_option.then(v => {
-        console.log("child selected", v, this.title);
+        // console.log("child selected", v, this.title);
         this._resolve(v);
       });
       value.level = this.level + 1;
@@ -173,7 +173,7 @@ export class TerminalMenu extends EventEmitter {
       selected_option.value.is_open = true;
       selected_option.value.startSelect();
     } else {
-      console.log("self select", selected_option);
+      // console.log("self select", selected_option);
       this._resolve(selected_option);
     }
   }
