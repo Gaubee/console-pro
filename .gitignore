@@ -2,5 +2,6 @@ node_modules
 package-lock.json
 yarn.lock
 .vs
+build
 dist
 dist-test
